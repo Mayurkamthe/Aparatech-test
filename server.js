@@ -18,6 +18,7 @@ const studentRoutes = require('./routes/studentRoutes');
 
 // ── Initialize Express ────────────────────────────────
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3000;
 
 // ── Database Connection ───────────────────────────────
@@ -43,7 +44,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Render handles HTTPS at proxy level
+    httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
