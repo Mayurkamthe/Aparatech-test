@@ -1,160 +1,104 @@
-/**
- * Auth Controller
- * ===============
- * Handles OTP-based login for students.
- * Admin uses hardcoded credentials from .env.
- */
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 
-const User     = require('../models/User');
-const OtpStore = require('../models/OtpStore');
-const { sendOTPEmail } = require('../services/emailService');
-const { generateOTP }  = require('../utils/codeGenerator');
-
-// OTP expiry in minutes
-const OTP_EXPIRY = parseInt(process.env.OTP_EXPIRY_MINUTES) || 10;
-
-// ── GET /login ────────────────────────────────────────
+// ── GET /login ─────────────────────────────────────────
 exports.getLogin = (req, res) => {
   res.render('login', { title: 'Login — APARAITECH Test Portal' });
 };
 
-// ── POST /login/send-otp ──────────────────────────────
-exports.sendOTP = async (req, res) => {
+// ── POST /login/register ───────────────────────────────
+exports.register = async (req, res) => {
   try {
-    const email = req.body.email?.toLowerCase().trim();
+    const { name, collegeName, email, password, confirmPassword } = req.body;
 
-    if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-      req.flash('error_msg', 'Please enter a valid email address.');
+    if (!name || !email || !password || !collegeName) {
+      req.flash('error_msg', 'All fields are required.');
       return res.redirect('/login');
     }
 
-    // ── Admin shortcut: check hardcoded admin email from .env ──
-    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
-    if (email === adminEmail) {
-      req.flash('error_msg', 'Admin: please use the Admin Login tab with your credentials.');
+    if (password !== confirmPassword) {
+      req.flash('error_msg', 'Passwords do not match.');
       return res.redirect('/login');
     }
 
-    // ── Generate OTP ──────────────────────────────────
-    const otp    = generateOTP();
-    const expiry = new Date(Date.now() + OTP_EXPIRY * 60 * 1000);
+    if (password.length < 6) {
+      req.flash('error_msg', 'Password must be at least 6 characters.');
+      return res.redirect('/login');
+    }
 
-    // Upsert OTP in database (replace any existing OTP for this email)
-    await OtpStore.findOneAndUpdate(
-      { email },
-      { otp, expiry, attempts: 0 },
-      { upsert: true, new: true }
-    );
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
+    if (existing) {
+      req.flash('error_msg', 'Email already registered. Please login.');
+      return res.redirect('/login');
+    }
 
-    // ── Create student user if not exists ─────────────
-    await User.findOneAndUpdate(
-      { email },
-      { email, role: 'student' },
-      { upsert: true, new: true }
-    );
+    const user = new User({
+      name: name.trim(),
+      collegeName: collegeName.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      role: 'student'
+    });
+    await user.save();
 
-    // ── Send OTP email ────────────────────────────────
-    await sendOTPEmail(email, otp);
-
-    // Store email in session temporarily for OTP verify step
-    req.session.pendingEmail = email;
-
-    req.flash('success_msg', `OTP sent to ${email}. Check your inbox.`);
-    res.redirect('/login/verify-otp');
+    req.flash('success_msg', 'Registration successful! Please login.');
+    res.redirect('/login');
 
   } catch (err) {
-    console.error('Send OTP error:', err.message);
-    req.flash('error_msg', err.message || 'Failed to send OTP. Please try again.');
+    console.error('Register error:', err.message);
+    req.flash('error_msg', 'Registration failed. Please try again.');
     res.redirect('/login');
   }
 };
 
-// ── GET /login/verify-otp ─────────────────────────────
-exports.getVerifyOTP = (req, res) => {
-  if (!req.session.pendingEmail) {
-    req.flash('error_msg', 'Session expired. Please start again.');
-    return res.redirect('/login');
-  }
-  res.render('verify-otp', {
-    title: 'Verify OTP — APARAITECH',
-    email: req.session.pendingEmail
-  });
-};
-
-// ── POST /login/verify-otp ────────────────────────────
-exports.verifyOTP = async (req, res) => {
+// ── POST /login/student ────────────────────────────────
+exports.studentLogin = async (req, res) => {
   try {
-    const email       = req.session.pendingEmail;
-    const enteredOTP  = req.body.otp?.trim();
+    const email = req.body.email?.toLowerCase().trim();
+    const password = req.body.password;
 
-    if (!email) {
-      req.flash('error_msg', 'Session expired. Please start again.');
+    if (!email || !password) {
+      req.flash('error_msg', 'Email and password are required.');
       return res.redirect('/login');
     }
 
-    if (!enteredOTP || enteredOTP.length !== 6) {
-      req.flash('error_msg', 'Please enter a valid 6-digit OTP.');
-      return res.redirect('/login/verify-otp');
-    }
-
-    // Fetch OTP record
-    const otpRecord = await OtpStore.findOne({ email });
-
-    if (!otpRecord) {
-      req.flash('error_msg', 'OTP not found or expired. Please request a new one.');
+    const user = await User.findOne({ email, role: 'student' });
+    if (!user || !user.password) {
+      req.flash('error_msg', 'Invalid email or password.');
       return res.redirect('/login');
     }
 
-    // Check expiry
-    if (new Date() > otpRecord.expiry) {
-      await OtpStore.deleteOne({ email });
-      req.flash('error_msg', 'OTP has expired. Please request a new one.');
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      req.flash('error_msg', 'Invalid email or password.');
       return res.redirect('/login');
     }
 
-    // Too many attempts (max 5)
-    if (otpRecord.attempts >= 5) {
-      await OtpStore.deleteOne({ email });
-      req.flash('error_msg', 'Too many failed attempts. Please request a new OTP.');
-      return res.redirect('/login');
-    }
-
-    // Verify OTP match
-    if (otpRecord.otp !== enteredOTP) {
-      await OtpStore.findOneAndUpdate({ email }, { $inc: { attempts: 1 } });
-      req.flash('error_msg', `Invalid OTP. ${4 - otpRecord.attempts} attempts remaining.`);
-      return res.redirect('/login/verify-otp');
-    }
-
-    // ── Success: Clean up OTP, create session ─────────
-    await OtpStore.deleteOne({ email });
-    const user = await User.findOne({ email });
-
-    req.session.pendingEmail = null;
     req.session.user = {
-      _id:   user._id.toString(),
+      _id: user._id.toString(),
       email: user.email,
-      name:  user.name || '',
-      role:  user.role
+      name: user.name,
+      collegeName: user.collegeName,
+      role: 'student'
     };
 
-    req.flash('success_msg', `Welcome back, ${user.name || user.email}!`);
+    req.flash('success_msg', `Welcome back, ${user.name}!`);
     res.redirect('/student/dashboard');
 
   } catch (err) {
-    console.error('Verify OTP error:', err.message);
-    req.flash('error_msg', 'OTP verification failed. Please try again.');
-    res.redirect('/login/verify-otp');
+    console.error('Student login error:', err.message);
+    req.flash('error_msg', 'Login failed. Please try again.');
+    res.redirect('/login');
   }
 };
 
-// ── POST /admin/login ─────────────────────────────────
+// ── POST /admin/login ──────────────────────────────────
 exports.adminLogin = async (req, res) => {
   try {
-    const email    = req.body.email?.toLowerCase().trim();
+    const email = req.body.email?.toLowerCase().trim();
     const password = req.body.password?.trim();
 
-    const adminEmail    = process.env.ADMIN_EMAIL?.toLowerCase();
+    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
     const adminPassword = process.env.ADMIN_PASSWORD;
 
     if (email !== adminEmail || password !== adminPassword) {
@@ -162,7 +106,6 @@ exports.adminLogin = async (req, res) => {
       return res.redirect('/login');
     }
 
-    // Upsert admin user in DB
     const admin = await User.findOneAndUpdate(
       { email },
       { email, role: 'admin', name: 'Administrator' },
@@ -170,10 +113,10 @@ exports.adminLogin = async (req, res) => {
     );
 
     req.session.user = {
-      _id:   admin._id.toString(),
+      _id: admin._id.toString(),
       email: admin.email,
-      name:  admin.name,
-      role:  'admin'
+      name: admin.name,
+      role: 'admin'
     };
 
     req.flash('success_msg', 'Welcome, Admin!');
@@ -186,7 +129,7 @@ exports.adminLogin = async (req, res) => {
   }
 };
 
-// ── GET /logout ───────────────────────────────────────
+// ── GET /logout ────────────────────────────────────────
 exports.logout = (req, res) => {
   req.session.destroy(() => {
     res.redirect('/login');

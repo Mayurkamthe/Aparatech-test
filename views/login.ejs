@@ -38,80 +38,153 @@
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="student-tab" data-bs-toggle="tab"
                 data-bs-target="#student-login" type="button" role="tab">
-          <i class="bi bi-mortarboard me-1"></i>Student Login
+          <i class="bi bi-mortarboard me-1"></i>Login
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="register-tab" data-bs-toggle="tab"
+                data-bs-target="#student-register" type="button" role="tab">
+          <i class="bi bi-person-plus me-1"></i>Register
         </button>
       </li>
       <li class="nav-item" role="presentation">
         <button class="nav-link" id="admin-tab" data-bs-toggle="tab"
                 data-bs-target="#admin-login" type="button" role="tab">
-          <i class="bi bi-shield-lock me-1"></i>Admin Login
+          <i class="bi bi-shield-lock me-1"></i>Admin
         </button>
       </li>
     </ul>
 
     <div class="tab-content" id="loginTabsContent">
 
-      <!-- ── STUDENT LOGIN (OTP) ──────────────────────── -->
+      <!-- ── STUDENT LOGIN ──────────────────────────── -->
       <div class="tab-pane fade show active" id="student-login" role="tabpanel">
-        <p class="text-muted small mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          Enter your email to receive a one-time login code.
-        </p>
-
-        <form action="/login/send-otp" method="POST" id="otpForm">
+        <form action="/login/student" method="POST">
           <div class="mb-3">
-            <label for="studentEmail" class="form-label">Email Address</label>
+            <label class="form-label">Email Address</label>
             <div class="input-group">
               <span class="input-group-text bg-white border-end-0">
                 <i class="bi bi-envelope text-muted"></i>
               </span>
               <input type="email" class="form-control border-start-0 ps-0"
-                     id="studentEmail" name="email"
-                     placeholder="you@example.com" required autocomplete="email">
-            </div>
-          </div>
-          <button type="submit" class="btn btn-primary w-100 py-2" id="sendOtpBtn">
-            <i class="bi bi-send me-1"></i>Send OTP
-          </button>
-        </form>
-
-        <hr class="my-3">
-        <p class="text-center text-muted" style="font-size:0.78rem;">
-          <i class="bi bi-shield-check me-1 text-success"></i>
-          Secure OTP login · Valid for <%= process.env.OTP_EXPIRY_MINUTES || 10 %> minutes
-        </p>
-      </div>
-
-      <!-- ── ADMIN LOGIN (Password) ───────────────────── -->
-      <div class="tab-pane fade" id="admin-login" role="tabpanel">
-        <p class="text-muted small mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          Admin credentials are set in the server environment.
-        </p>
-
-        <form action="/admin/login" method="POST">
-          <div class="mb-3">
-            <label for="adminEmail" class="form-label">Admin Email</label>
-            <div class="input-group">
-              <span class="input-group-text bg-white border-end-0">
-                <i class="bi bi-person-badge text-muted"></i>
-              </span>
-              <input type="email" class="form-control border-start-0 ps-0"
-                     id="adminEmail" name="email"
-                     placeholder="admin@aparaitechsoftware.org" required>
+                     name="email" placeholder="you@example.com" required autocomplete="email">
             </div>
           </div>
           <div class="mb-3">
-            <label for="adminPassword" class="form-label">Password</label>
+            <label class="form-label">Password</label>
             <div class="input-group">
               <span class="input-group-text bg-white border-end-0">
                 <i class="bi bi-key text-muted"></i>
               </span>
               <input type="password" class="form-control border-start-0 ps-0"
-                     id="adminPassword" name="password"
-                     placeholder="••••••••••" required>
-              <button class="btn btn-outline-secondary" type="button" id="togglePass">
-                <i class="bi bi-eye" id="eyeIcon"></i>
+                     name="password" placeholder="••••••••" required id="studentPass">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePass('studentPass', 'eye1')">
+                <i class="bi bi-eye" id="eye1"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 py-2">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+          </button>
+        </form>
+        <p class="text-center mt-3 small text-muted">
+          Don't have an account?
+          <a href="#" onclick="switchTab('register-tab')" class="text-primary">Register here</a>
+        </p>
+      </div>
+
+      <!-- ── STUDENT REGISTER ───────────────────────── -->
+      <div class="tab-pane fade" id="student-register" role="tabpanel">
+        <form action="/login/register" method="POST">
+          <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-person text-muted"></i>
+              </span>
+              <input type="text" class="form-control border-start-0 ps-0"
+                     name="name" placeholder="Your full name" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">College Name</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-building text-muted"></i>
+              </span>
+              <input type="text" class="form-control border-start-0 ps-0"
+                     name="collegeName" placeholder="Your college name" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Email Address</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-envelope text-muted"></i>
+              </span>
+              <input type="email" class="form-control border-start-0 ps-0"
+                     name="email" placeholder="you@example.com" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-key text-muted"></i>
+              </span>
+              <input type="password" class="form-control border-start-0 ps-0"
+                     name="password" placeholder="Min 6 characters" required id="regPass">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePass('regPass', 'eye2')">
+                <i class="bi bi-eye" id="eye2"></i>
+              </button>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirm Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-key-fill text-muted"></i>
+              </span>
+              <input type="password" class="form-control border-start-0 ps-0"
+                     name="confirmPassword" placeholder="Re-enter password" required id="regPass2">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePass('regPass2', 'eye3')">
+                <i class="bi bi-eye" id="eye3"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success w-100 py-2">
+            <i class="bi bi-person-check me-1"></i>Register
+          </button>
+        </form>
+        <p class="text-center mt-3 small text-muted">
+          Already registered?
+          <a href="#" onclick="switchTab('student-tab')" class="text-primary">Login here</a>
+        </p>
+      </div>
+
+      <!-- ── ADMIN LOGIN ─────────────────────────────── -->
+      <div class="tab-pane fade" id="admin-login" role="tabpanel">
+        <form action="/admin/login" method="POST">
+          <div class="mb-3">
+            <label class="form-label">Admin Email</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-person-badge text-muted"></i>
+              </span>
+              <input type="email" class="form-control border-start-0 ps-0"
+                     name="email" placeholder="admin@aparaitechsoftware.org" required>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-key text-muted"></i>
+              </span>
+              <input type="password" class="form-control border-start-0 ps-0"
+                     name="password" placeholder="••••••••••" required id="adminPass">
+              <button class="btn btn-outline-secondary" type="button" onclick="togglePass('adminPass', 'eye4')">
+                <i class="bi bi-eye" id="eye4"></i>
               </button>
             </div>
           </div>
@@ -123,28 +196,20 @@
 
     </div><!-- /tab-content -->
 
-    <!-- Company Footer -->
+    <!-- Footer -->
     <div class="text-center mt-4 pt-3 border-top" style="font-size:0.73rem; color:#aaa;">
       <strong>APARAITECH</strong> · Reg No: 2431000320445474 <br>
       Baramati, Maharashtra 413102 · info@aparaitechsoftware.org
     </div>
 
-  </div><!-- /login-card -->
-</div><!-- /login-wrapper -->
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // Show loading state on OTP submit
-  document.getElementById('otpForm')?.addEventListener('submit', function () {
-    const btn = document.getElementById('sendOtpBtn');
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
-    btn.disabled = true;
-  });
-
-  // Toggle password visibility
-  document.getElementById('togglePass')?.addEventListener('click', function () {
-    const input = document.getElementById('adminPassword');
-    const icon  = document.getElementById('eyeIcon');
+  function togglePass(inputId, iconId) {
+    const input = document.getElementById(inputId);
+    const icon  = document.getElementById(iconId);
     if (input.type === 'password') {
       input.type = 'text';
       icon.classList.replace('bi-eye', 'bi-eye-slash');
@@ -152,12 +217,16 @@
       input.type = 'password';
       icon.classList.replace('bi-eye-slash', 'bi-eye');
     }
-  });
+  }
 
-  // If error came from admin form, activate admin tab
+  function switchTab(tabId) {
+    const tab = new bootstrap.Tab(document.getElementById(tabId));
+    tab.show();
+  }
+
+  // Auto-switch to admin tab if admin error
   <% if (error_msg && error_msg.toString().toLowerCase().includes('admin')) { %>
-    const adminTab = new bootstrap.Tab(document.getElementById('admin-tab'));
-    adminTab.show();
+    switchTab('admin-tab');
   <% } %>
 </script>
 </body>

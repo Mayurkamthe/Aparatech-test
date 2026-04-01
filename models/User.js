@@ -1,11 +1,5 @@
-/**
- * User Model
- * ==========
- * Stores student and admin accounts.
- * Roles: 'admin' | 'student'
- */
-
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -16,7 +10,16 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email address']
   },
+  password: {
+    type: String,
+    default: ''
+  },
   name: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  collegeName: {
     type: String,
     trim: true,
     default: ''
@@ -31,7 +34,19 @@ const userSchema = new mongoose.Schema({
     default: true
   }
 }, {
-  timestamps: true // adds createdAt and updatedAt
+  timestamps: true
 });
+
+// Hash password before saving
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password') || !this.password) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+// Compare password method
+userSchema.methods.comparePassword = async function (entered) {
+  return bcrypt.compare(entered, this.password);
+};
 
 module.exports = mongoose.model('User', userSchema);
