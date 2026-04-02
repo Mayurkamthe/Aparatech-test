@@ -57,6 +57,16 @@
       <span class="section-title">
         <i class="bi bi-table me-2"></i>Results (<%= results.length %>)
       </span>
+      <div class="d-flex gap-2">
+        <a href="/admin/results/topscores<%= selectedTest ? '?testId=' + selectedTest : '' %>"
+           class="btn btn-sm btn-warning">
+          <i class="bi bi-trophy me-1"></i>Top Scores
+        </a>
+        <a href="/admin/results/download<%= selectedTest ? '?testId=' + selectedTest : '' %>"
+           class="btn btn-sm btn-success">
+          <i class="bi bi-file-earmark-excel me-1"></i>Download Excel
+        </a>
+      </div>
     </div>
     <div class="card-body p-0">
       <% if (results.length === 0) { %>

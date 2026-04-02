@@ -295,3 +295,98 @@ exports.deleteUser = async (req, res) => {
     res.redirect('/admin/users');
   }
 };
+
+// ── GET /admin/results/download ───────────────────────
+exports.downloadResults = async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    const { testId } = req.query;
+    const filter = {};
+    if (testId) filter.testId = testId;
+
+    const results = await Result.find(filter).sort({ percentage: -1 });
+
+    const rows = results.map((r, i) => ({
+      Rank: i + 1,
+      'Student Name': r.studentName || '',
+      'Email': r.studentEmail || '',
+      'Test': r.testTitle || '',
+      'Domain': r.testDomain || '',
+      'Score': `${r.score}/${r.totalMarks}`,
+      'Percentage': `${r.percentage.toFixed(1)}%`,
+      'Status': r.isPassed ? 'Passed' : 'Failed',
+      'Correct': r.correctCount,
+      'Incorrect': r.incorrectCount,
+      'Unattempted': r.unattempted,
+      'Tab Switches': r.tabSwitchCount,
+      'Date': new Date(r.submittedAt).toLocaleDateString('en-IN')
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Column widths
+    ws['!cols'] = [
+      {wch:6},{wch:20},{wch:28},{wch:25},{wch:15},
+      {wch:10},{wch:12},{wch:10},{wch:10},{wch:10},
+      {wch:12},{wch:14},{wch:14}
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Results');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    const filename = testId ? `results-${testId}.xlsx` : 'all-results.xlsx';
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+
+  } catch (err) {
+    console.error('Download results error:', err.message);
+    req.flash('error_msg', 'Failed to download results.');
+    res.redirect('/admin/results');
+  }
+};
+
+// ── GET /admin/results/topscores ──────────────────────
+exports.getTopScores = async (req, res) => {
+  try {
+    const { testId } = req.query;
+    const filter = {};
+    if (testId) filter.testId = testId;
+
+    const [topResults, tests] = await Promise.all([
+      Result.find(filter).sort({ percentage: -1, score: -1 }).limit(20),
+      Test.find({}, 'title _id')
+    ]);
+
+    // Group by test for test-wise stats
+    const testStats = await Result.aggregate([
+      ...(testId ? [{ $match: { testId: require('mongoose').Types.ObjectId.createFromHexString(testId) } }] : []),
+      {
+        $group: {
+          _id: '$testId',
+          testTitle: { $first: '$testTitle' },
+          testDomain: { $first: '$testDomain' },
+          totalAttempts: { $sum: 1 },
+          avgScore: { $avg: '$percentage' },
+          highestScore: { $max: '$percentage' },
+          lowestScore: { $min: '$percentage' },
+          passCount: { $sum: { $cond: ['$isPassed', 1, 0] } }
+        }
+      },
+      { $sort: { totalAttempts: -1 } }
+    ]);
+
+    res.render('admin/topscores', {
+      title: 'Top Scores — APARAITECH Admin',
+      topResults,
+      testStats,
+      tests,
+      selectedTest: testId || ''
+    });
+  } catch (err) {
+    console.error('Top scores error:', err.message);
+    req.flash('error_msg', 'Failed to load top scores.');
+    res.redirect('/admin/results');
+  }
+};

@@ -32,6 +32,8 @@ router.get('/results',         adminController.getAllResults);
 router.get('/results/:id',     adminController.getResultDetail);
 router.get('/results/:id/pdf', studentController.adminDownloadPDF);
 
+router.get("/results/download",  adminController.downloadResults);
+router.get("/results/topscores", adminController.getTopScores);
 router.get("/users", adminController.getUsers);
 router.post("/users/:id/delete", adminController.deleteUser);
 
