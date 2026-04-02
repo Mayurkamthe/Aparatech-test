@@ -15,9 +15,12 @@ const { generateResultPDF } = require('../services/pdfService');
 // ── GET /student/dashboard ────────────────────────────
 exports.getDashboard = async (req, res) => {
   try {
-    const results = await Result.find({ studentId: req.session.user._id })
-      .sort({ submittedAt: -1 })
-      .populate('testId', 'title domain');
+    const results = await Result.find({
+      $or: [
+        { studentId: req.session.user._id },
+        { studentEmail: req.session.user.email }
+      ]
+    }).sort({ submittedAt: -1 }).populate('testId', 'title domain');
 
     res.render('student/dashboard', {
       title: 'Student Dashboard — APARAITECH',
@@ -305,8 +308,11 @@ exports.getResult = async (req, res) => {
       return res.redirect('/student/dashboard');
     }
 
-    // Only the student who took the test can see their result
-    if (result.studentId.toString() !== req.session.user._id) {
+    // Allow access by studentId OR studentEmail (fallback for migrated users)
+    const ownedById    = result.studentId && result.studentId.toString() === req.session.user._id;
+    const ownedByEmail = result.studentEmail === req.session.user.email;
+
+    if (!ownedById && !ownedByEmail) {
       req.flash('error_msg', 'Access denied.');
       return res.redirect('/student/dashboard');
     }
