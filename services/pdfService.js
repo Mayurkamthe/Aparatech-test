@@ -241,3 +241,141 @@ function formatTime(seconds) {
 }
 
 module.exports = { generateResultPDF };
+
+/**
+ * Generate PDF as a Buffer (for email attachments)
+ * @param {Object} result - Full result document
+ * @returns {Promise<Buffer>}
+ */
+async function generateResultPDFBuffer(result) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+    const chunks = [];
+
+    doc.on('data', chunk => chunks.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const pageWidth = doc.page.width - 100;
+
+    // ── Header ────────────────────────────────────────
+    doc.rect(50, 50, pageWidth, 80).fill(COLORS.primary);
+    doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(26).text(COMPANY.name, 70, 68);
+    doc.fillColor('#90caf9').font('Helvetica').fontSize(11).text('Online Test Portal — Result Report', 70, 102);
+    doc.y = 150;
+
+    doc.fillColor(COLORS.primary).font('Helvetica-Bold').fontSize(18)
+       .text('TEST RESULT REPORT', 50, doc.y, { align: 'center', width: pageWidth });
+    doc.y += 8;
+    doc.moveTo(50, doc.y).lineTo(50 + pageWidth, doc.y).strokeColor(COLORS.primary).lineWidth(2).stroke();
+    doc.y += 16;
+
+    // ── Details ───────────────────────────────────────
+    const details = [
+      ['Student Name', result.studentName || 'N/A'],
+      ['Email',        result.studentEmail],
+      ['Test Title',   result.testTitle],
+      ['Domain',       result.testDomain],
+      ['Submitted',    new Date(result.submittedAt).toLocaleString('en-IN')],
+      ['Time Taken',   formatTime(result.timeTaken || 0)]
+    ];
+
+    let row = 0;
+    details.forEach(([label, value]) => {
+      const y = doc.y; const rowH = 26;
+      doc.rect(50, y, pageWidth, rowH).fill(row % 2 === 0 ? '#f8f9fa' : '#ffffff');
+      doc.fillColor(COLORS.gray).font('Helvetica-Bold').fontSize(10).text(label + ':', 58, y + 8, { width: 120 });
+      doc.fillColor(COLORS.text).font('Helvetica').fontSize(10).text(String(value), 185, y + 8, { width: pageWidth - 140 });
+      doc.y += rowH; row++;
+    });
+
+    doc.y += 20;
+
+    // ── Score Box ─────────────────────────────────────
+    const scoreColor = result.isPassed ? COLORS.success : COLORS.danger;
+    const boxY = doc.y;
+    doc.rect(50, boxY, pageWidth, 90).fill(result.isPassed ? '#e8f5e9' : '#ffebee');
+    doc.strokeColor(scoreColor).lineWidth(2).rect(50, boxY, pageWidth, 90).stroke();
+    doc.fillColor(scoreColor).font('Helvetica-Bold').fontSize(40)
+       .text(`${result.score} / ${result.totalMarks}`, 50, boxY + 10, { align: 'center', width: pageWidth });
+    doc.fontSize(14)
+       .text(`${result.percentage.toFixed(1)}%  —  ${result.isPassed ? 'PASSED ✓' : 'FAILED ✗'}`, 50, boxY + 58, { align: 'center', width: pageWidth });
+    doc.y = boxY + 105;
+
+    // ── Stats ─────────────────────────────────────────
+    const statW = (pageWidth - 20) / 3;
+    const statsY = doc.y;
+    [
+      { label: 'Correct',   value: result.correctCount,   color: COLORS.success, bg: '#e8f5e9' },
+      { label: 'Incorrect', value: result.incorrectCount, color: COLORS.danger,  bg: '#ffebee' },
+      { label: 'Skipped',   value: result.unattempted,    color: COLORS.warning, bg: '#fff8e1' }
+    ].forEach((s, i) => {
+      const sx = 50 + i * (statW + 10);
+      doc.rect(sx, statsY, statW, 55).fill(s.bg);
+      doc.fillColor(s.color).font('Helvetica-Bold').fontSize(28).text(String(s.value), sx, statsY + 6, { width: statW, align: 'center' });
+      doc.fontSize(10).font('Helvetica').text(s.label, sx, statsY + 38, { width: statW, align: 'center' });
+    });
+    doc.y = statsY + 70;
+
+    // ── Answers ───────────────────────────────────────
+    if (result.answers && result.answers.length > 0) {
+      doc.addPage();
+      doc.rect(50, 50, pageWidth, 40).fill(COLORS.primary);
+      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(14).text(`${COMPANY.name}  |  Detailed Answer Report`, 70, 63);
+      doc.y = 110;
+
+      result.answers.forEach((ans, idx) => {
+        if (doc.y > 700) {
+          doc.addPage();
+          doc.rect(50, 50, pageWidth, 40).fill(COLORS.primary);
+          doc.fillColor('#fff').font('Helvetica-Bold').fontSize(14).text(`${COMPANY.name}  |  Answers (cont.)`, 70, 63);
+          doc.y = 110;
+        }
+
+        const qColor = ans.isCorrect ? COLORS.success : (ans.selectedOption === -1 ? COLORS.warning : COLORS.danger);
+
+        doc.rect(50, doc.y, pageWidth, 22).fill(COLORS.primary);
+        doc.fillColor('#fff').font('Helvetica-Bold').fontSize(10)
+           .text(`Q${idx + 1}.  ${ans.questionText}`, 58, doc.y + 6, { width: pageWidth - 20 });
+        doc.y += 28;
+
+        if (ans.options && ans.options.length) {
+          ans.options.forEach((opt, oIdx) => {
+            const isSelected = oIdx === ans.selectedOption;
+            const isCorrect  = oIdx === ans.correctOption;
+            let optBg = '#ffffff'; let optColor = COLORS.text; let marker = '  ';
+            if (isCorrect) { optBg = '#e8f5e9'; optColor = COLORS.success; marker = '✓ '; }
+            if (isSelected && !isCorrect) { optBg = '#ffebee'; optColor = COLORS.danger; marker = '✗ '; }
+            doc.rect(58, doc.y, pageWidth - 16, 18).fill(optBg);
+            doc.fillColor(optColor).font(isSelected || isCorrect ? 'Helvetica-Bold' : 'Helvetica').fontSize(9)
+               .text(`${marker}${'ABCD'[oIdx]}) ${opt}`, 66, doc.y + 5, { width: pageWidth - 30 });
+            doc.y += 19;
+          });
+        }
+
+        const resultLabel = ans.isCorrect ? `✓ Correct (+${ans.marksAwarded} mark)` : (ans.selectedOption === -1 ? '⬜ Not Attempted' : '✗ Incorrect (0 marks)');
+        doc.fillColor(qColor).font('Helvetica-Bold').fontSize(9).text(resultLabel, 58, doc.y + 2);
+        doc.y += 16;
+
+        if (ans.explanation) {
+          doc.fillColor(COLORS.gray).font('Helvetica-Oblique').fontSize(8).text(`💡 ${ans.explanation}`, 58, doc.y, { width: pageWidth - 20 });
+          doc.y += 14;
+        }
+        doc.y += 6;
+      });
+    }
+
+    // ── Footer ────────────────────────────────────────
+    doc.y += 10;
+    doc.moveTo(50, doc.y).lineTo(50 + pageWidth, doc.y).strokeColor(COLORS.border).lineWidth(1).stroke();
+    doc.y += 8;
+    doc.fillColor(COLORS.gray).font('Helvetica').fontSize(9)
+       .text(`${COMPANY.name}  |  Reg No: ${COMPANY.reg}`, 50, doc.y, { align: 'center', width: pageWidth });
+    doc.y += 12;
+    doc.text(`${COMPANY.address}  |  ${COMPANY.email}`, 50, doc.y, { align: 'center', width: pageWidth });
+
+    doc.end();
+  });
+}
+
+module.exports = { generateResultPDF, generateResultPDFBuffer };
