@@ -32,4 +32,9 @@ router.get('/results',         adminController.getAllResults);
 router.get('/results/:id',     adminController.getResultDetail);
 router.get('/results/:id/pdf', studentController.adminDownloadPDF);
 
+router.get("/users", adminController.getUsers);
+router.post("/users/:id/delete", adminController.deleteUser);
+
 module.exports = router;
+
+// ── Users ─────────────────────────────────────────────

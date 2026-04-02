@@ -243,3 +243,55 @@ exports.deleteTest = async (req, res) => {
     res.redirect('/admin/tests');
   }
 };
+
+// ── GET /admin/users ──────────────────────────────────
+exports.getUsers = async (req, res) => {
+  try {
+    const { search } = req.query;
+    const filter = { role: 'student' };
+    if (search) {
+      filter.$or = [
+        { email: { $regex: search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { collegeName: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const users = await User.find(filter).sort({ createdAt: -1 });
+
+    // Get result count per user
+    const usersWithStats = await Promise.all(users.map(async (u) => {
+      const attempts = await Result.countDocuments({ studentEmail: u.email });
+      return { ...u.toObject(), attempts };
+    }));
+
+    res.render('admin/users', {
+      title: 'Manage Users — APARAITECH Admin',
+      users: usersWithStats,
+      search: search || ''
+    });
+  } catch (err) {
+    console.error('Get users error:', err.message);
+    req.flash('error_msg', 'Failed to load users.');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+// ── POST /admin/users/:id/delete ──────────────────────
+exports.deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || user.role === 'admin') {
+      req.flash('error_msg', 'User not found or cannot delete admin.');
+      return res.redirect('/admin/users');
+    }
+    await User.findByIdAndDelete(req.params.id);
+    await Result.deleteMany({ studentEmail: user.email });
+    req.flash('success_msg', `User ${user.email} and their results deleted.`);
+    res.redirect('/admin/users');
+  } catch (err) {
+    console.error('Delete user error:', err.message);
+    req.flash('error_msg', 'Failed to delete user.');
+    res.redirect('/admin/users');
+  }
+};
