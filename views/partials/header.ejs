@@ -115,6 +115,13 @@
             </ul>
           </li>
 
+        <!-- PWA Install Button (shown only when installable) -->
+        <li class="nav-item d-none" id="pwaInstallBtn">
+          <button class="btn btn-outline-light btn-sm px-3" onclick="installPWA()">
+            <i class="bi bi-download me-1"></i>Install App
+          </button>
+        </li>
+
         <% } else { %>
           <li class="nav-item">
             <a class="btn btn-outline-light px-4" href="/login">
