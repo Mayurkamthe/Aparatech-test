@@ -5,7 +5,6 @@
  */
 
 const Test     = require('../models/Test');
-const { setCache, getCache, delCachePattern } = require('../utils/cache');
 const College  = require('../models/College');
 const Question = require('../models/Question');
 const Result   = require('../models/Result');
@@ -15,16 +14,6 @@ const { generateTestCode } = require('../utils/codeGenerator');
 // ── GET /admin/dashboard ──────────────────────────────
 exports.getDashboard = async (req, res) => {
   try {
-    // Try cache first (60s TTL)
-    const cached = await getCache('dashboard:stats');
-    if (cached) {
-      return res.render('admin/dashboard', {
-        title: 'Admin Dashboard — APARAITECH',
-        stats: cached.stats,
-        recentResults: cached.recentResults
-      });
-    }
-
     const [testCount, studentCount, resultCount, recentResults] = await Promise.all([
       Test.countDocuments({ isActive: true }),
       User.countDocuments({ role: 'student' }),
@@ -34,12 +23,9 @@ exports.getDashboard = async (req, res) => {
             .populate('testId', 'title domain')
     ]);
 
-    const stats = { testCount, studentCount, resultCount };
-    await setCache('dashboard:stats', { stats, recentResults }, 60);
-
     res.render('admin/dashboard', {
       title: 'Admin Dashboard — APARAITECH',
-      stats,
+      stats: { testCount, studentCount, resultCount },
       recentResults
     });
   } catch (err) {
@@ -52,10 +38,6 @@ exports.getDashboard = async (req, res) => {
 // ── GET /admin/tests ──────────────────────────────────
 exports.getTests = async (req, res) => {
   try {
-    const cachedTests = await getCache('tests:list');
-    if (cachedTests) {
-      return res.render('admin/tests', { title: 'Manage Tests — APARAITECH Admin', tests: cachedTests });
-    }
     const tests = await Test.find({}).sort({ createdAt: -1 });
 
     // Get question counts for each test
@@ -65,7 +47,6 @@ exports.getTests = async (req, res) => {
       return { ...test.toObject(), questionCount: qCount, resultCount: rCount };
     }));
 
-    await setCache('tests:list', testsWithCounts, 120);
     res.render('admin/tests', {
       title: 'Manage Tests — APARAITECH Admin',
       tests: testsWithCounts
@@ -114,7 +95,6 @@ exports.postCreateTest = async (req, res) => {
       createdBy: req.session.user._id
     });
 
-    await delCachePattern('dashboard:');
     req.flash('success_msg', `Test created! Code: <strong>${code}</strong>. Now add questions.`);
     res.redirect(`/admin/tests/${test._id}/questions`);
 
@@ -195,8 +175,6 @@ exports.toggleTestStatus = async (req, res) => {
     const test = await Test.findById(req.params.id);
     test.isActive = !test.isActive;
     await test.save();
-    await delCachePattern('tests:');
-    await delCachePattern('dashboard:');
     req.flash('success_msg', `Test ${test.isActive ? 'activated' : 'deactivated'}.`);
     res.redirect('/admin/tests');
   } catch (err) {
@@ -259,7 +237,6 @@ exports.deleteTest = async (req, res) => {
     await Test.findByIdAndDelete(req.params.id);
     await Question.deleteMany({ testId: req.params.id });
     await Result.deleteMany({ testId: req.params.id });
-    await delCachePattern('dashboard:');
     req.flash('success_msg', 'Test and all related data deleted.');
     res.redirect('/admin/tests');
   } catch (err) {
@@ -432,17 +409,12 @@ exports.getTopScores = async (req, res) => {
 // ── GET /admin/colleges ───────────────────────────────
 exports.getColleges = async (req, res) => {
   try {
-    const cachedColleges = await getCache('colleges:list');
-    if (cachedColleges) {
-      return res.render('admin/colleges', { title: 'Manage Colleges — APARAITECH Admin', colleges: cachedColleges });
-    }
     const colleges = await College.find({}).sort({ name: 1 });
     const collegesWithStats = await Promise.all(colleges.map(async (c) => {
       const studentCount = await User.countDocuments({ collegeId: c._id, role: 'student' });
       const resultCount  = await Result.countDocuments({ collegeId: c._id });
       return { ...c.toObject(), studentCount, resultCount };
     }));
-    await setCache('colleges:list', collegesWithStats, 120);
     res.render('admin/colleges', {
       title: 'Manage Colleges — APARAITECH Admin',
       colleges: collegesWithStats
@@ -473,7 +445,6 @@ exports.addCollege = async (req, res) => {
       address: address?.trim() || '',
       contactEmail: contactEmail?.trim() || ''
     });
-    await delCachePattern('colleges:');
     req.flash('success_msg', `College "${name}" added successfully!`);
     res.redirect('/admin/colleges');
   } catch (err) {
@@ -494,7 +465,6 @@ exports.deleteCollege = async (req, res) => {
     // Unlink students from this college
     await User.updateMany({ collegeId: req.params.id }, { collegeId: null, collegeName: '' });
     await College.findByIdAndDelete(req.params.id);
-    await delCachePattern('colleges:');
     req.flash('success_msg', `College "${college.name}" deleted.`);
     res.redirect('/admin/colleges');
   } catch (err) {
