@@ -87,40 +87,95 @@ async function sendOTPEmail(toEmail, otp, name = '') {
 
 // ── SEND RESULT EMAIL ─────────────────────────────────
 async function sendResultEmail(result) {
-  const { studentEmail, studentName, testTitle, testDomain,
+  const {
+    studentEmail, studentName, testTitle, testDomain,
     score, totalMarks, percentage, isPassed,
-    correctCount, incorrectCount, unattempted } = result;
+    correctCount, incorrectCount, unattempted,
+    submittedAt
+  } = result;
 
-  const statusColor = isPassed ? '#2e7d32' : '#c62828';
-  const statusBg    = isPassed ? '#e8f5e9' : '#ffebee';
-  const statusText  = isPassed ? '✅ PASSED' : '❌ FAILED';
+  const statusColor  = isPassed ? '#1b5e20' : '#b71c1c';
+  const statusBg     = isPassed ? '#f1f8f1' : '#fdf3f3';
+  const statusBorder = isPassed ? '#a5d6a7' : '#ef9a9a';
+  const statusLabel  = isPassed ? 'PASSED' : 'FAILED';
+  const submittedDate = new Date(submittedAt).toLocaleString('en-IN', {
+    day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
 
   const html = `
-    <div style="max-width:600px;margin:0 auto;font-family:'Segoe UI',Arial,sans-serif;border:1px solid #e0e0e0;border-radius:10px;overflow:hidden;">
+    <div style="max-width:620px;margin:0 auto;font-family:'Segoe UI',Helvetica,Arial,sans-serif;background:#f4f6f9;">
+
       ${getHeader()}
-      <div style="padding:40px;background:#fff;">
-        <h2 style="color:#0d47a1;margin-top:0;">Test Result Summary</h2>
-        <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
-          <tr><td style="padding:8px;color:#555;font-size:14px;border-bottom:1px solid #f0f0f0;"><strong>Student</strong></td><td style="padding:8px;color:#333;font-size:14px;border-bottom:1px solid #f0f0f0;">${studentName || 'N/A'}</td></tr>
-          <tr><td style="padding:8px;color:#555;font-size:14px;border-bottom:1px solid #f0f0f0;"><strong>Test</strong></td><td style="padding:8px;color:#333;font-size:14px;border-bottom:1px solid #f0f0f0;">${testTitle}</td></tr>
-          <tr><td style="padding:8px;color:#555;font-size:14px;"><strong>Domain</strong></td><td style="padding:8px;color:#333;font-size:14px;">${testDomain}</td></tr>
+
+      <!-- Intro -->
+      <div style="background:#ffffff;padding:36px 40px 0;">
+        <p style="margin:0 0 6px;font-size:15px;color:#333;">Dear <strong>${studentName || 'Student'}</strong>,</p>
+        <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+          Your assessment has been evaluated. Please find your official result summary below.
+        </p>
+
+        <!-- Test Details Table -->
+        <table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:14px;">
+          <thead>
+            <tr style="background:#f0f4ff;">
+              <th colspan="2" style="padding:10px 12px;text-align:left;color:#0d47a1;font-size:13px;letter-spacing:0.5px;text-transform:uppercase;border-bottom:2px solid #c5cae9;">Assessment Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid #f0f0f0;">
+              <td style="padding:10px 12px;color:#666;width:38%;">Test Title</td>
+              <td style="padding:10px 12px;color:#222;font-weight:600;">${testTitle}</td>
+            </tr>
+            <tr style="background:#fafafa;border-bottom:1px solid #f0f0f0;">
+              <td style="padding:10px 12px;color:#666;">Domain</td>
+              <td style="padding:10px 12px;color:#222;">${testDomain}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #f0f0f0;">
+              <td style="padding:10px 12px;color:#666;">Submitted On</td>
+              <td style="padding:10px 12px;color:#222;">${submittedDate}</td>
+            </tr>
+          </tbody>
         </table>
-        <div style="background:${statusBg};border:2px solid ${statusColor};border-radius:12px;padding:25px;text-align:center;margin:20px 0;">
-          <div style="font-size:48px;font-weight:bold;color:${statusColor};">${score} / ${totalMarks}</div>
-          <div style="font-size:18px;color:${statusColor};margin:5px 0;">${percentage.toFixed(1)}%</div>
-          <div style="font-size:20px;font-weight:bold;color:${statusColor};margin-top:10px;">${statusText}</div>
+
+        <!-- Score Box -->
+        <div style="background:${statusBg};border:1px solid ${statusBorder};border-radius:8px;padding:28px 20px;text-align:center;margin-bottom:24px;">
+          <div style="font-size:13px;color:#777;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Total Score</div>
+          <div style="font-size:52px;font-weight:700;color:${statusColor};line-height:1;">${score} <span style="font-size:24px;font-weight:400;color:#999;">/ ${totalMarks}</span></div>
+          <div style="font-size:20px;color:${statusColor};margin:8px 0 12px;font-weight:600;">${percentage.toFixed(1)}%</div>
+          <div style="display:inline-block;padding:6px 24px;border-radius:20px;background:${statusColor};color:#fff;font-size:13px;font-weight:700;letter-spacing:1.5px;">${statusLabel}</div>
         </div>
-        <table style="width:100%;border-collapse:collapse;">
+
+        <!-- Stats Row -->
+        <table style="width:100%;border-collapse:separate;border-spacing:8px;margin-bottom:24px;">
           <tr>
-            <td style="text-align:center;padding:15px;background:#e8f5e9;border-radius:8px;"><div style="font-size:24px;font-weight:bold;color:#2e7d32;">${correctCount}</div><div style="font-size:12px;color:#555;">✅ Correct</div></td>
-            <td style="width:10px;"></td>
-            <td style="text-align:center;padding:15px;background:#ffebee;border-radius:8px;"><div style="font-size:24px;font-weight:bold;color:#c62828;">${incorrectCount}</div><div style="font-size:12px;color:#555;">❌ Incorrect</div></td>
-            <td style="width:10px;"></td>
-            <td style="text-align:center;padding:15px;background:#fff8e1;border-radius:8px;"><div style="font-size:24px;font-weight:bold;color:#f57f17;">${unattempted}</div><div style="font-size:12px;color:#555;">⬜ Skipped</div></td>
+            <td style="text-align:center;padding:16px 10px;background:#f1f8f1;border-radius:6px;border:1px solid #c8e6c9;">
+              <div style="font-size:26px;font-weight:700;color:#2e7d32;">${correctCount}</div>
+              <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Correct</div>
+            </td>
+            <td style="text-align:center;padding:16px 10px;background:#fdf3f3;border-radius:6px;border:1px solid #ffcdd2;">
+              <div style="font-size:26px;font-weight:700;color:#c62828;">${incorrectCount}</div>
+              <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Incorrect</div>
+            </td>
+            <td style="text-align:center;padding:16px 10px;background:#fffde7;border-radius:6px;border:1px solid #fff176;">
+              <div style="font-size:26px;font-weight:700;color:#f57f17;">${unattempted}</div>
+              <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-top:4px;">Skipped</div>
+            </td>
           </tr>
         </table>
-        <p style="font-size:13px;color:#555;margin-top:20px;">Log in to the portal to download your detailed PDF result sheet.</p>
+
+        <!-- CTA -->
+        <div style="background:#f0f4ff;border-radius:6px;padding:16px 20px;margin-bottom:32px;">
+          <p style="margin:0;font-size:13px;color:#444;line-height:1.6;">
+            Your detailed answer sheet and score breakdown are available on the portal.
+            Log in to view or download your official PDF result report.
+          </p>
+        </div>
+
+        <p style="font-size:13px;color:#555;margin:0 0 4px;">Regards,</p>
+        <p style="font-size:14px;font-weight:600;color:#0d47a1;margin:0;">${COMPANY.name} — Assessment Team</p>
       </div>
+
       ${getFooter()}
     </div>`;
 
@@ -128,14 +183,14 @@ async function sendResultEmail(result) {
     const info = await getTransporter().sendMail({
       from: `"${COMPANY.name} Test Portal" <${process.env.SMTP_USER}>`,
       to: studentEmail,
-      subject: `📊 Test Result: ${testTitle} — ${COMPANY.name}`,
+      subject: `Test Result Notification: ${testTitle} — ${COMPANY.name}`,
       html
     });
-    console.log(`✅ Result email sent to ${studentEmail}: ${info.messageId}`);
+    console.log(`Result email sent to ${studentEmail}: ${info.messageId}`);
     return { success: true };
   } catch (err) {
-    console.error(`❌ Result email failed for ${studentEmail}:`, err.message);
-    return { success: false, error: err.message }; // Don't throw — result is already saved
+    console.error(`Result email failed for ${studentEmail}:`, err.message);
+    return { success: false, error: err.message };
   }
 }
 
