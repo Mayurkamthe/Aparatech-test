@@ -266,6 +266,8 @@ exports.submitTest = async (req, res) => {
       testId,
       studentName:   studentUser?.name || '',
       studentEmail:  req.session.user.email,
+      collegeId:     studentUser?.collegeId || null,
+      collegeName:   studentUser?.collegeName || '',
       testTitle:     test.title,
       testDomain:    test.domain,
       score,

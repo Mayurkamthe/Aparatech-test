@@ -1,9 +1,15 @@
-const User = require('../models/User');
+const User    = require('../models/User');
+const College = require('../models/College');
 const bcrypt = require('bcryptjs');
 
 // ── GET /login ─────────────────────────────────────────
-exports.getLogin = (req, res) => {
-  res.render('login', { title: 'Login — APARAITECH Test Portal' });
+exports.getLogin = async (req, res) => {
+  try {
+    const colleges = await College.find({ isActive: true }).sort({ name: 1 });
+    res.render('login', { title: 'Login — APARAITECH Test Portal', colleges });
+  } catch (err) {
+    res.render('login', { title: 'Login — APARAITECH Test Portal', colleges: [] });
+  }
 };
 
 // ── POST /login/register ───────────────────────────────
@@ -32,9 +38,13 @@ exports.register = async (req, res) => {
       return res.redirect('/login');
     }
 
+    // Find college by name to get ID
+    const college = await College.findOne({ name: collegeName.trim() });
+
     const user = new User({
       name: name.trim(),
-      collegeName: collegeName.trim(),
+      collegeName: college ? college.name : collegeName.trim(),
+      collegeId: college ? college._id : null,
       email: email.toLowerCase().trim(),
       password,
       role: 'student'

@@ -5,6 +5,7 @@
  */
 
 const Test     = require('../models/Test');
+const College  = require('../models/College');
 const Question = require('../models/Question');
 const Result   = require('../models/Result');
 const User     = require('../models/User');
@@ -388,5 +389,159 @@ exports.getTopScores = async (req, res) => {
     console.error('Top scores error:', err.message);
     req.flash('error_msg', 'Failed to load top scores.');
     res.redirect('/admin/results');
+  }
+};
+
+// ── GET /admin/colleges ───────────────────────────────
+exports.getColleges = async (req, res) => {
+  try {
+    const colleges = await College.find({}).sort({ name: 1 });
+    const collegesWithStats = await Promise.all(colleges.map(async (c) => {
+      const studentCount = await User.countDocuments({ collegeId: c._id, role: 'student' });
+      const resultCount  = await Result.countDocuments({ collegeId: c._id });
+      return { ...c.toObject(), studentCount, resultCount };
+    }));
+    res.render('admin/colleges', {
+      title: 'Manage Colleges — APARAITECH Admin',
+      colleges: collegesWithStats
+    });
+  } catch (err) {
+    console.error('Get colleges error:', err.message);
+    req.flash('error_msg', 'Failed to load colleges.');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+// ── POST /admin/colleges/add ──────────────────────────
+exports.addCollege = async (req, res) => {
+  try {
+    const { name, code, address, contactEmail } = req.body;
+    if (!name) {
+      req.flash('error_msg', 'College name is required.');
+      return res.redirect('/admin/colleges');
+    }
+    const existing = await College.findOne({ name: name.trim() });
+    if (existing) {
+      req.flash('error_msg', 'College already exists.');
+      return res.redirect('/admin/colleges');
+    }
+    await College.create({
+      name: name.trim(),
+      code: code?.trim().toUpperCase() || name.trim().substring(0, 6).toUpperCase(),
+      address: address?.trim() || '',
+      contactEmail: contactEmail?.trim() || ''
+    });
+    req.flash('success_msg', `College "${name}" added successfully!`);
+    res.redirect('/admin/colleges');
+  } catch (err) {
+    console.error('Add college error:', err.message);
+    req.flash('error_msg', 'Failed to add college.');
+    res.redirect('/admin/colleges');
+  }
+};
+
+// ── POST /admin/colleges/:id/delete ──────────────────
+exports.deleteCollege = async (req, res) => {
+  try {
+    const college = await College.findById(req.params.id);
+    if (!college) {
+      req.flash('error_msg', 'College not found.');
+      return res.redirect('/admin/colleges');
+    }
+    // Unlink students from this college
+    await User.updateMany({ collegeId: req.params.id }, { collegeId: null, collegeName: '' });
+    await College.findByIdAndDelete(req.params.id);
+    req.flash('success_msg', `College "${college.name}" deleted.`);
+    res.redirect('/admin/colleges');
+  } catch (err) {
+    req.flash('error_msg', 'Failed to delete college.');
+    res.redirect('/admin/colleges');
+  }
+};
+
+// ── GET /admin/colleges/:id/report ───────────────────
+exports.getCollegeReport = async (req, res) => {
+  try {
+    const college = await College.findById(req.params.id);
+    if (!college) {
+      req.flash('error_msg', 'College not found.');
+      return res.redirect('/admin/colleges');
+    }
+
+    const [students, results, tests] = await Promise.all([
+      User.find({ collegeId: college._id, role: 'student' }).sort({ name: 1 }),
+      Result.find({ collegeId: college._id }).sort({ submittedAt: -1 }),
+      Test.find({}, 'title _id')
+    ]);
+
+    // Test-wise stats for this college
+    const testStats = await Result.aggregate([
+      { $match: { collegeId: college._id } },
+      { $group: {
+        _id: '$testId',
+        testTitle:     { $first: '$testTitle' },
+        totalAttempts: { $sum: 1 },
+        avgScore:      { $avg: '$percentage' },
+        highestScore:  { $max: '$percentage' },
+        passCount:     { $sum: { $cond: ['$isPassed', 1, 0] } }
+      }},
+      { $sort: { totalAttempts: -1 } }
+    ]);
+
+    res.render('admin/college-report', {
+      title: `${college.name} — Report`,
+      college,
+      students,
+      results,
+      testStats,
+      tests
+    });
+  } catch (err) {
+    console.error('College report error:', err.message);
+    req.flash('error_msg', 'Failed to load college report.');
+    res.redirect('/admin/colleges');
+  }
+};
+
+// ── GET /admin/colleges/:id/download ─────────────────
+exports.downloadCollegeReport = async (req, res) => {
+  try {
+    const XLSX = require('xlsx');
+    const college = await College.findById(req.params.id);
+    if (!college) return res.redirect('/admin/colleges');
+
+    const results = await Result.find({ collegeId: college._id }).sort({ percentage: -1 });
+
+    const rows = results.map((r, i) => ({
+      Rank:           i + 1,
+      'Student Name': r.studentName || '',
+      'Email':        r.studentEmail || '',
+      'College':      r.collegeName || college.name,
+      'Test':         r.testTitle || '',
+      'Domain':       r.testDomain || '',
+      'Score':        `${r.score}/${r.totalMarks}`,
+      'Percentage':   `${r.percentage.toFixed(1)}%`,
+      'Status':       r.isPassed ? 'Passed' : 'Failed',
+      'Correct':      r.correctCount,
+      'Incorrect':    r.incorrectCount,
+      'Skipped':      r.unattempted,
+      'Date':         new Date(r.submittedAt).toLocaleDateString('en-IN')
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      {wch:6},{wch:20},{wch:28},{wch:25},{wch:22},
+      {wch:15},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:14}
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, college.name.substring(0, 31));
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', `attachment; filename="${college.name}-report.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (err) {
+    req.flash('error_msg', 'Failed to download report.');
+    res.redirect('/admin/colleges');
   }
 };

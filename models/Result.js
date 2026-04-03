@@ -40,6 +40,15 @@ const resultSchema = new mongoose.Schema({
     required: true
   },
   studentName: String,
+  collegeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'College',
+    default: null
+  },
+  collegeName: {
+    type: String,
+    default: ''
+  },
   studentEmail: String,
   testTitle: String,
   testDomain: String,

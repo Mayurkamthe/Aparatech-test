@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="/css/main.css" rel="stylesheet">
+</head>
+<body>
+<%- include('../partials/header', { activePage: 'colleges' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h1><i class="bi bi-building me-2"></i><%= college.name %></h1>
+        <p><%= college.code %> · <%= college.address || 'No address' %></p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="/admin/colleges/<%= college._id %>/download" class="btn btn-success">
+          <i class="bi bi-file-earmark-excel me-1"></i>Download Excel
+        </a>
+        <a href="/admin/colleges" class="btn btn-light">
+          <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="container pb-5">
+  <%- include('../partials/flash') %>
+
+  <!-- Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#0d47a1,#1565c0);">
+        <div class="stat-icon"><i class="bi bi-people"></i></div>
+        <div><div class="stat-value"><%= students.length %></div><div class="stat-label">Students</div></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#00695c,#00897b);">
+        <div class="stat-icon"><i class="bi bi-journal-check"></i></div>
+        <div><div class="stat-value"><%= results.length %></div><div class="stat-label">Attempts</div></div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#2e7d32,#388e3c);">
+        <div class="stat-icon"><i class="bi bi-trophy"></i></div>
+        <div>
+          <div class="stat-value"><%= results.filter(r => r.isPassed).length %></div>
+          <div class="stat-label">Passed</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card" style="background:linear-gradient(135deg,#6a1b9a,#8e24aa);">
+        <div class="stat-icon"><i class="bi bi-bar-chart"></i></div>
+        <div>
+          <div class="stat-value">
+            <%= results.length > 0 ? (results.reduce((a,r) => a + r.percentage, 0) / results.length).toFixed(1) + '%' : '—' %>
+          </div>
+          <div class="stat-label">Avg Score</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test-wise Summary -->
+  <% if (testStats.length > 0) { %>
+  <h5 class="fw-bold mb-3"><i class="bi bi-bar-chart me-2"></i>Test-wise Performance</h5>
+  <div class="row g-3 mb-4">
+    <% testStats.forEach(t => { %>
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <div class="fw-bold"><%= t.testTitle %></div>
+            <span class="badge bg-secondary"><%= t.totalAttempts %> attempts</span>
+          </div>
+          <div class="row g-2 text-center">
+            <div class="col-4">
+              <div class="fw-bold text-success"><%= t.highestScore.toFixed(1) %>%</div>
+              <div class="text-muted" style="font-size:0.72rem;">Highest</div>
+            </div>
+            <div class="col-4">
+              <div class="fw-bold text-primary"><%= t.avgScore.toFixed(1) %>%</div>
+              <div class="text-muted" style="font-size:0.72rem;">Average</div>
+            </div>
+            <div class="col-4">
+              <div class="fw-bold text-success"><%= t.passCount %>/<%= t.totalAttempts %></div>
+              <div class="text-muted" style="font-size:0.72rem;">Passed</div>
+            </div>
+          </div>
+          <div class="progress mt-2" style="height:6px;">
+            <div class="progress-bar bg-success" style="width:<%= ((t.passCount/t.totalAttempts)*100).toFixed(0) %>%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+
+  <!-- Students List -->
+  <div class="card mb-4">
+    <div class="card-header">
+      <span class="section-title"><i class="bi bi-people me-2"></i>Registered Students (<%= students.length %>)</span>
+    </div>
+    <div class="card-body p-0">
+      <% if (students.length === 0) { %>
+        <div class="empty-state"><i class="bi bi-person-x"></i><p>No students registered from this college yet.</p></div>
+      <% } else { %>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Joined</th></tr></thead>
+          <tbody>
+            <% students.forEach((s, i) => { %>
+            <tr>
+              <td class="text-muted small"><%= i+1 %></td>
+              <td class="fw-semibold"><%= s.name || '—' %></td>
+              <td class="text-muted small"><%= s.email %></td>
+              <td class="text-muted small"><%= new Date(s.createdAt).toLocaleDateString('en-IN') %></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- All Results -->
+  <div class="card">
+    <div class="card-header">
+      <span class="section-title"><i class="bi bi-table me-2"></i>All Results (<%= results.length %>)</span>
+    </div>
+    <div class="card-body p-0">
+      <% if (results.length === 0) { %>
+        <div class="empty-state"><i class="bi bi-inbox"></i><p>No results yet.</p></div>
+      <% } else { %>
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead>
+            <tr><th>#</th><th>Student</th><th>Test</th><th>Score</th><th>%</th><th>Status</th><th>Date</th><th></th></tr>
+          </thead>
+          <tbody>
+            <% results.forEach((r, i) => { %>
+            <tr>
+              <td class="text-muted small"><%= i+1 %></td>
+              <td>
+                <div class="fw-semibold small"><%= r.studentName || '—' %></div>
+                <div class="text-muted" style="font-size:0.75rem;"><%= r.studentEmail %></div>
+              </td>
+              <td>
+                <div class="small fw-semibold"><%= r.testTitle %></div>
+                <span class="badge bg-light text-dark border" style="font-size:0.7rem;"><%= r.testDomain %></span>
+              </td>
+              <td class="fw-bold"><%= r.score %>/<%= r.totalMarks %></td>
+              <td>
+                <span class="fw-bold <%= r.percentage >= 80 ? 'text-success' : r.percentage >= 50 ? 'text-primary' : 'text-danger' %>">
+                  <%= r.percentage.toFixed(1) %>%
+                </span>
+              </td>
+              <td>
+                <span class="badge <%= r.isPassed ? 'bg-success' : 'bg-danger' %>">
+                  <%= r.isPassed ? 'Passed' : 'Failed' %>
+                </span>
+              </td>
+              <td class="text-muted small"><%= new Date(r.submittedAt).toLocaleDateString('en-IN') %></td>
+              <td>
+                <a href="/admin/results/<%= r._id %>" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-eye"></i>
+                </a>
+              </td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } %>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/footer') %>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

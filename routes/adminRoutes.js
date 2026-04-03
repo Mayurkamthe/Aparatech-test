@@ -32,6 +32,13 @@ router.get('/results/topscores',    adminController.getTopScores);
 router.get('/results/:id',          adminController.getResultDetail);
 router.get('/results/:id/pdf',      studentController.adminDownloadPDF);
 
+// ── Colleges ──────────────────────────────────────────
+router.get('/colleges',                    adminController.getColleges);
+router.post('/colleges/add',               adminController.addCollege);
+router.post('/colleges/:id/delete',        adminController.deleteCollege);
+router.get('/colleges/:id/report',         adminController.getCollegeReport);
+router.get('/colleges/:id/download',       adminController.downloadCollegeReport);
+
 // ── Users ─────────────────────────────────────────────
 router.get('/users',                adminController.getUsers);
 router.post('/users/:id/delete',    adminController.deleteUser);
