@@ -47,6 +47,11 @@
           <div class="form-text">Email is linked to your account and cannot be changed.</div>
         </div>
         <div class="mb-3">
+          <label class="form-label">College Name</label>
+          <input type="text" class="form-control" value="<%= user.collegeName || 'Not assigned' %>" disabled>
+          <div class="form-text">College is assigned during registration and cannot be changed.</div>
+        </div>
+        <div class="mb-3">
           <label class="form-label">Account Type</label>
           <input type="text" class="form-control" value="Student" disabled>
         </div>
