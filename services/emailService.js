@@ -139,4 +139,4 @@ async function sendResultEmail(result) {
   }
 }
 
-module.exports = { sendOTPEmail, sendResultEmail };
+module.exports = { sendResultEmail };

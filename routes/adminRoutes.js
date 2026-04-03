@@ -40,7 +40,8 @@ router.get('/colleges/:id/report',         adminController.getCollegeReport);
 router.get('/colleges/:id/download',       adminController.downloadCollegeReport);
 
 // ── Users ─────────────────────────────────────────────
-router.get('/users',                adminController.getUsers);
-router.post('/users/:id/delete',    adminController.deleteUser);
+router.get('/users',                    adminController.getUsers);
+router.post('/users/delete-all',        adminController.deleteAllUsers);   // MUST come before /:id
+router.post('/users/:id/delete',        adminController.deleteUser);
 
 module.exports = router;
