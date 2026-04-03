@@ -1,11 +1,16 @@
 const User    = require('../models/User');
 const College = require('../models/College');
+const { getCache, setCache, delCachePattern } = require('../utils/cache');
 const bcrypt = require('bcryptjs');
 
 // ── GET /login ─────────────────────────────────────────
 exports.getLogin = async (req, res) => {
   try {
-    const colleges = await College.find({ isActive: true }).sort({ name: 1 });
+    let colleges = await getCache('colleges:active');
+    if (!colleges) {
+      colleges = await College.find({ isActive: true }).sort({ name: 1 });
+      await setCache('colleges:active', colleges, 300);
+    }
     res.render('login', { title: 'Login — APARAITECH Test Portal', colleges });
   } catch (err) {
     res.render('login', { title: 'Login — APARAITECH Test Portal', colleges: [] });
