@@ -278,6 +278,20 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+// ── POST /admin/users/delete-all ─────────────────────
+exports.deleteAllUsers = async (req, res) => {
+  try {
+    await User.deleteMany({ role: 'student' });
+    await Result.deleteMany({});
+    req.flash('success_msg', 'All students and their results have been deleted.');
+    res.redirect('/admin/users');
+  } catch (err) {
+    console.error('Delete all users error:', err.message);
+    req.flash('error_msg', 'Failed to delete all users.');
+    res.redirect('/admin/users');
+  }
+};
+
 // ── POST /admin/users/:id/delete ──────────────────────
 exports.deleteUser = async (req, res) => {
   try {
