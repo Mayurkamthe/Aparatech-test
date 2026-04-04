@@ -584,3 +584,90 @@ exports.resetStudentTest = async (req, res) => {
     res.redirect('/admin/results');
   }
 };
+
+// ── GET /admin/tests/:id/edit ─────────────────────────
+exports.getEditTest = async (req, res) => {
+  try {
+    const test = await Test.findById(req.params.id);
+    if (!test) {
+      req.flash('error_msg', 'Test not found.');
+      return res.redirect('/admin/tests');
+    }
+    res.render('admin/edit-test', { title: `Edit Test — ${test.title}`, test });
+  } catch (err) {
+    req.flash('error_msg', 'Failed to load test.');
+    res.redirect('/admin/tests');
+  }
+};
+
+// ── POST /admin/tests/:id/edit ────────────────────────
+exports.postEditTest = async (req, res) => {
+  try {
+    const { title, domain, duration, totalMarks, passingMarks, questionLimit, instructions } = req.body;
+
+    if (!title || !domain || !duration || !totalMarks) {
+      req.flash('error_msg', 'Please fill all required fields.');
+      return res.redirect(`/admin/tests/${req.params.id}/edit`);
+    }
+
+    await Test.findByIdAndUpdate(req.params.id, {
+      title:         title.trim(),
+      domain,
+      duration:      parseInt(duration),
+      totalMarks:    parseInt(totalMarks),
+      passingMarks:  parseInt(passingMarks) || 0,
+      questionLimit: parseInt(questionLimit) || 0,
+      instructions:  instructions?.trim() || ''
+    });
+
+    req.flash('success_msg', 'Test updated successfully.');
+    res.redirect('/admin/tests');
+  } catch (err) {
+    console.error('Edit test error:', err.message);
+    req.flash('error_msg', 'Failed to update test.');
+    res.redirect(`/admin/tests/${req.params.id}/edit`);
+  }
+};
+
+// ── GET /admin/questions/:id/edit ─────────────────────
+exports.getEditQuestion = async (req, res) => {
+  try {
+    const question = await Question.findById(req.params.id);
+    if (!question) {
+      req.flash('error_msg', 'Question not found.');
+      return res.redirect('/admin/tests');
+    }
+    const test = await Test.findById(question.testId);
+    res.render('admin/edit-question', { title: 'Edit Question', question, test });
+  } catch (err) {
+    req.flash('error_msg', 'Failed to load question.');
+    res.redirect('/admin/tests');
+  }
+};
+
+// ── POST /admin/questions/:id/edit ────────────────────
+exports.postEditQuestion = async (req, res) => {
+  try {
+    const { question, optA, optB, optC, optD, correctAnswer, marks, explanation } = req.body;
+
+    if (!question || !optA || !optB || !optC || !optD || correctAnswer === undefined) {
+      req.flash('error_msg', 'All question fields are required.');
+      return res.redirect(`/admin/questions/${req.params.id}/edit`);
+    }
+
+    const updated = await Question.findByIdAndUpdate(req.params.id, {
+      question:      question.trim(),
+      options:       [optA.trim(), optB.trim(), optC.trim(), optD.trim()],
+      correctAnswer: parseInt(correctAnswer),
+      marks:         parseInt(marks) || 1,
+      explanation:   explanation?.trim() || ''
+    }, { new: true });
+
+    req.flash('success_msg', 'Question updated successfully.');
+    res.redirect(`/admin/tests/${updated.testId}/questions`);
+  } catch (err) {
+    console.error('Edit question error:', err.message);
+    req.flash('error_msg', 'Failed to update question.');
+    res.redirect(`/admin/questions/${req.params.id}/edit`);
+  }
+};

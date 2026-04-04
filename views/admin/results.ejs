@@ -81,6 +81,7 @@
               <tr>
                 <th>#</th>
                 <th>Student</th>
+                <th>College</th>
                 <th>Test</th>
                 <th>Score</th>
                 <th>%</th>
@@ -98,6 +99,7 @@
                   <div class="fw-semibold small"><%= r.studentName || '—' %></div>
                   <div class="text-muted" style="font-size:0.78rem;"><%= r.studentEmail %></div>
                 </td>
+                <td class="text-muted small"><%= r.collegeName || '—' %></td>
                 <td>
                   <div class="fw-semibold small"><%= r.testTitle %></div>
                   <span class="badge bg-light text-dark border" style="font-size:0.7rem;"><%= r.testDomain %></span>

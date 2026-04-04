@@ -17,12 +17,16 @@ router.get('/dashboard', adminController.getDashboard);
 router.get('/tests',              adminController.getTests);
 router.get('/tests/create',       adminController.getCreateTest);
 router.post('/tests/create',      adminController.postCreateTest);
+router.get('/tests/:id/edit',     adminController.getEditTest);
+router.post('/tests/:id/edit',    adminController.postEditTest);
 router.get('/tests/:id/toggle',   adminController.toggleTestStatus);
 router.post('/tests/:id/delete',  adminController.deleteTest);
 
 // ── Questions ─────────────────────────────────────────
 router.get('/tests/:id/questions',   adminController.getAddQuestions);
 router.post('/tests/:id/questions',  adminController.postAddQuestion);
+router.get('/questions/:id/edit',    adminController.getEditQuestion);
+router.post('/questions/:id/edit',   adminController.postEditQuestion);
 router.post('/questions/:id/delete', adminController.deleteQuestion);
 
 // ── Results (specific routes MUST come before /:id) ───

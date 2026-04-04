@@ -128,12 +128,17 @@
               <div class="border rounded-2 p-3 position-relative">
                 <div class="d-flex justify-content-between align-items-start mb-2">
                   <span class="question-number">Q<%= idx + 1 %></span>
-                  <form action="/admin/questions/<%= q._id %>/delete" method="POST"
-                        onsubmit="return confirm('Delete this question?')">
-                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </form>
+                  <div class="d-flex gap-1">
+                    <a href="/admin/questions/<%= q._id %>/edit" class="btn btn-sm btn-outline-secondary" title="Edit">
+                      <i class="bi bi-pencil"></i>
+                    </a>
+                    <form action="/admin/questions/<%= q._id %>/delete" method="POST"
+                          onsubmit="return confirm('Delete this question?')">
+                      <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </form>
+                  </div>
                 </div>
                 <p class="question-text mb-2"><%= q.question %></p>
                 <div class="d-flex flex-column gap-1">
