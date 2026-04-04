@@ -559,3 +559,28 @@ exports.downloadCollegeReport = async (req, res) => {
     res.redirect('/admin/colleges');
   }
 };
+
+// ── POST /admin/results/:id/reset ─────────────────────
+exports.resetStudentTest = async (req, res) => {
+  try {
+    const result = await Result.findById(req.params.id);
+
+    if (!result) {
+      req.flash('error_msg', 'Result not found.');
+      return res.redirect('/admin/results');
+    }
+
+    const email    = result.studentEmail;
+    const testTitle = result.testTitle;
+
+    await Result.findByIdAndDelete(req.params.id);
+
+    req.flash('success_msg', `Result for ${email} on "${testTitle}" has been deleted. They can now retake the test.`);
+    res.redirect('/admin/results');
+
+  } catch (err) {
+    console.error('Reset test error:', err.message);
+    req.flash('error_msg', 'Failed to reset test. Please try again.');
+    res.redirect('/admin/results');
+  }
+};

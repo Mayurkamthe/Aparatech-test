@@ -30,6 +30,7 @@ router.get('/results',              adminController.getAllResults);
 router.get('/results/download',     adminController.downloadResults);
 router.get('/results/topscores',    adminController.getTopScores);
 router.get('/results/:id',          adminController.getResultDetail);
+router.post('/results/:id/reset',   adminController.resetStudentTest);
 router.get('/results/:id/pdf',      studentController.adminDownloadPDF);
 
 // ── Colleges ──────────────────────────────────────────
