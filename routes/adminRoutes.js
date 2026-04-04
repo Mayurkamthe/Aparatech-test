@@ -44,6 +44,10 @@ router.post('/colleges/:id/delete',        adminController.deleteCollege);
 router.get('/colleges/:id/report',         adminController.getCollegeReport);
 router.get('/colleges/:id/download',       adminController.downloadCollegeReport);
 
+// ── Announcements ────────────────────────────────────
+router.get('/announce',  adminController.getAnnounce);
+router.post('/announce', adminController.postAnnounce);
+
 // ── Users ─────────────────────────────────────────────
 router.get('/users',                    adminController.getUsers);
 router.post('/users/delete-all',        adminController.deleteAllUsers);   // MUST come before /:id

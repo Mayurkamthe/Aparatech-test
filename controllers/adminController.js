@@ -671,3 +671,62 @@ exports.postEditQuestion = async (req, res) => {
     res.redirect(`/admin/questions/${req.params.id}/edit`);
   }
 };
+
+// ── GET /admin/announce ───────────────────────────────
+exports.getAnnounce = async (req, res) => {
+  try {
+    const colleges = await College.find({ isActive: true }).sort({ name: 1 });
+    const studentCount = await User.countDocuments({ role: 'student' });
+    res.render('admin/announce', {
+      title: 'Send Announcement — APARAITECH Admin',
+      colleges,
+      studentCount
+    });
+  } catch (err) {
+    console.error('Announce page error:', err.message);
+    req.flash('error_msg', 'Failed to load announcement page.');
+    res.redirect('/admin/dashboard');
+  }
+};
+
+// ── POST /admin/announce ──────────────────────────────
+exports.postAnnounce = async (req, res) => {
+  try {
+    const { subject, message, audience, collegeId } = req.body;
+    const { sendAnnouncementEmail } = require('../services/emailService');
+
+    if (!subject?.trim() || !message?.trim()) {
+      req.flash('error_msg', 'Subject and message are required.');
+      return res.redirect('/admin/announce');
+    }
+
+    // Build recipient list
+    const filter = { role: 'student' };
+    if (audience === 'college' && collegeId) {
+      filter.collegeId = collegeId;
+    }
+
+    const students = await User.find(filter, 'email').lean();
+    const emails = students.map(s => s.email).filter(Boolean);
+
+    if (emails.length === 0) {
+      req.flash('error_msg', 'No students found for the selected audience.');
+      return res.redirect('/admin/announce');
+    }
+
+    // Send async — don't block the response
+    sendAnnouncementEmail(emails, subject.trim(), message.trim(), req.session.user.name)
+      .then(({ sent, failed, total }) => {
+        console.log(`Announcement: ${sent}/${total} sent, ${failed} failed`);
+      })
+      .catch(err => console.error('Announcement error:', err.message));
+
+    req.flash('success_msg', `Announcement queued for ${emails.length} student(s). Emails are being sent in the background.`);
+    res.redirect('/admin/announce');
+
+  } catch (err) {
+    console.error('Post announce error:', err.message);
+    req.flash('error_msg', 'Failed to send announcement.');
+    res.redirect('/admin/announce');
+  }
+};

@@ -194,4 +194,54 @@ async function sendResultEmail(result) {
   }
 }
 
-module.exports = { sendResultEmail };
+
+// ── SEND ANNOUNCEMENT EMAIL ───────────────────────────
+async function sendAnnouncementEmail(toEmails, subject, message, adminName) {
+  const html = `
+    <div style="max-width:620px;margin:0 auto;font-family:'Segoe UI',Helvetica,Arial,sans-serif;background:#f4f6f9;">
+      ${getHeader()}
+      <div style="background:#ffffff;padding:36px 40px 0;">
+        <p style="margin:0 0 24px;font-size:15px;color:#333;line-height:1.6;">
+          Dear Student,
+        </p>
+        <div style="font-size:15px;color:#333;line-height:1.8;white-space:pre-line;">${message}</div>
+        <div style="margin-top:32px;padding-top:24px;border-top:1px solid #e0e0e0;">
+          <p style="font-size:13px;color:#555;margin:0 0 4px;">Regards,</p>
+          <p style="font-size:14px;font-weight:600;color:#0d47a1;margin:0;">${adminName || 'Admin'} — ${COMPANY.name}</p>
+        </div>
+        <div style="height:32px;"></div>
+      </div>
+      ${getFooter()}
+    </div>`;
+
+  const transporter = getTransporter();
+  let sent = 0, failed = 0;
+
+  // Send in batches of 10 to avoid rate limits
+  const batchSize = 10;
+  for (let i = 0; i < toEmails.length; i += batchSize) {
+    const batch = toEmails.slice(i, i + batchSize);
+    await Promise.allSettled(batch.map(async (email) => {
+      try {
+        await transporter.sendMail({
+          from: `"${COMPANY.name} Test Portal" <${process.env.SMTP_USER}>`,
+          to: email,
+          subject: `${subject} — ${COMPANY.name}`,
+          html
+        });
+        sent++;
+      } catch (err) {
+        console.error(`Announcement failed for ${email}:`, err.message);
+        failed++;
+      }
+    }));
+    // Small delay between batches
+    if (i + batchSize < toEmails.length) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
+
+  return { sent, failed, total: toEmails.length };
+}
+
+module.exports = { sendResultEmail, sendAnnouncementEmail };
