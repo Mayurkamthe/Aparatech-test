@@ -134,8 +134,10 @@
                     <a href="/admin/results/<%= r._id %>/pdf" class="btn btn-sm btn-outline-danger" title="Download PDF">
                       <i class="bi bi-file-pdf"></i>
                     </a>
-                    <button class="btn btn-sm btn-outline-warning" title="Reset Test"
-                            onclick="openResetModal('<%= r._id %>', '<%= r.studentEmail.replace(/'/g, \'\') %>', '<%= r.testTitle.replace(/'/g, \'\') %>')">
+                    <button class="btn btn-sm btn-outline-warning reset-btn" title="Reset Test"
+                            data-id="<%= r._id %>"
+                            data-email="<%= r.studentEmail %>"
+                            data-test="<%= r.testTitle %>">
                       <i class="bi bi-arrow-counterclockwise"></i>
                     </button>
                   </div>
@@ -189,14 +191,16 @@
 </div>
 
 <script>
-  function openResetModal(id, email, testTitle) {
-    document.getElementById('resetEmail').textContent = email;
-    document.getElementById('resetTest').textContent  = testTitle;
-    document.getElementById('resetForm').action       = `/admin/results/${id}/reset`;
-    document.getElementById('resetConfirmInput').value = '';
-    document.getElementById('resetSubmitBtn').disabled = true;
-    new bootstrap.Modal(document.getElementById('resetModal')).show();
-  }
+  document.querySelectorAll('.reset-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      document.getElementById('resetEmail').textContent = this.dataset.email;
+      document.getElementById('resetTest').textContent  = this.dataset.test;
+      document.getElementById('resetForm').action       = `/admin/results/${this.dataset.id}/reset`;
+      document.getElementById('resetConfirmInput').value = '';
+      document.getElementById('resetSubmitBtn').disabled = true;
+      new bootstrap.Modal(document.getElementById('resetModal')).show();
+    });
+  });
   document.getElementById('resetConfirmInput').addEventListener('input', function () {
     document.getElementById('resetSubmitBtn').disabled = this.value !== 'RESET';
   });
