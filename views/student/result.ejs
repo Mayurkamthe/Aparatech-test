@@ -67,6 +67,9 @@
       <a href="/student/results/<%= result._id %>/pdf" class="btn btn-light fw-semibold">
         <i class="bi bi-file-pdf me-1 text-danger"></i>Download PDF Report
       </a>
+      <button class="btn btn-light fw-semibold" onclick="openShareModal()">
+        <i class="bi bi-share me-1 text-primary"></i>Share Result
+      </button>
       <a href="/student/dashboard" class="btn btn-outline-light">
         <i class="bi bi-house me-1"></i>Dashboard
       </a>
@@ -196,5 +199,230 @@
     }
   });
 </script>
+
+<!-- Share Result Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-share me-2"></i>Share Your Result</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center pt-2">
+        <p class="text-muted small mb-3">Your result card is ready to share on LinkedIn, WhatsApp, or anywhere.</p>
+        <canvas id="shareCanvas" style="max-width:100%;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.15);"></canvas>
+        <div class="d-flex gap-2 justify-content-center mt-3 flex-wrap">
+          <button class="btn btn-primary fw-semibold" onclick="downloadCard()">
+            <i class="bi bi-download me-1"></i>Download Image
+          </button>
+          <button class="btn btn-success fw-semibold" onclick="shareWhatsApp()">
+            <i class="bi bi-whatsapp me-1"></i>WhatsApp
+          </button>
+          <button class="btn btn-outline-primary fw-semibold" onclick="shareLinkedIn()">
+            <i class="bi bi-linkedin me-1"></i>LinkedIn
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const RESULT = {
+  studentName:  '<%= (result.studentName || "Student").replace(/'/g, "") %>',
+  collegeName:  '<%= (result.collegeName || "").replace(/'/g, "") %>',
+  testTitle:    '<%= result.testTitle.replace(/'/g, "") %>',
+  testDomain:   '<%= result.testDomain %>',
+  score:        '<%= result.score %>',
+  totalMarks:   '<%= result.totalMarks %>',
+  percentage:   '<%= result.percentage.toFixed(1) %>',
+  isPassed:     <%= result.isPassed %>,
+  companyName:  '<%= companyName %>'
+};
+
+function openShareModal() {
+  new bootstrap.Modal(document.getElementById('shareModal')).show();
+  setTimeout(drawCard, 200);
+}
+
+function drawCard() {
+  const canvas = document.getElementById('shareCanvas');
+  const W = 1080, H = 566;
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // ── Background ──────────────────────────────────────
+  // Deep navy gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0,   '#0d1b3e');
+  bg.addColorStop(0.6, '#0d47a1');
+  bg.addColorStop(1,   '#0a2472');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Decorative circles (top-right)
+  ctx.save();
+  ctx.globalAlpha = 0.07;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(W - 80, -60, 220, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W + 40, 100, 180, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // Decorative circles (bottom-left)
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath(); ctx.arc(-40, H + 40, 200, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // ── Left accent bar ──────────────────────────────────
+  const accent = ctx.createLinearGradient(0, 0, 0, H);
+  accent.addColorStop(0, '#42a5f5');
+  accent.addColorStop(1, '#1565c0');
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, 0, 6, H);
+
+  // ── Company name (top-left) ──────────────────────────
+  ctx.fillStyle = '#90caf9';
+  ctx.font = 'bold 28px Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(RESULT.companyName, 52, 58);
+
+  // Thin separator line under company
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(52, 72); ctx.lineTo(W - 52, 72); ctx.stroke();
+
+  // ── "Assessment Result" label ────────────────────────
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.font = '500 20px Arial, sans-serif';
+  ctx.fillText('Assessment Result', 52, 108);
+
+  // ── Student name ─────────────────────────────────────
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 52px Arial, sans-serif';
+  // Truncate if too long
+  let name = RESULT.studentName;
+  while (ctx.measureText(name).width > 620 && name.length > 5) name = name.slice(0, -1);
+  if (name !== RESULT.studentName) name += '…';
+  ctx.fillText(name, 52, 176);
+
+  // ── College name ─────────────────────────────────────
+  if (RESULT.collegeName) {
+    ctx.fillStyle = '#90caf9';
+    ctx.font = '400 22px Arial, sans-serif';
+    let college = RESULT.collegeName;
+    while (ctx.measureText(college).width > 620 && college.length > 5) college = college.slice(0, -1);
+    if (college !== RESULT.collegeName) college += '…';
+    ctx.fillText(college, 52, 214);
+  }
+
+  // ── Test title ───────────────────────────────────────
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.font = '400 22px Arial, sans-serif';
+  let testTitle = RESULT.testTitle;
+  while (ctx.measureText(testTitle).width > 620 && testTitle.length > 5) testTitle = testTitle.slice(0, -1);
+  if (testTitle !== RESULT.testTitle) testTitle += '…';
+  ctx.fillText(testTitle, 52, 254);
+
+  // Domain pill
+  const domainX = 52, domainY = 276;
+  const domainW = ctx.measureText(RESULT.testDomain).width + 28;
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  roundRect(ctx, domainX, domainY, domainW, 30, 15);
+  ctx.fill();
+  ctx.fillStyle = '#90caf9';
+  ctx.font = '500 16px Arial, sans-serif';
+  ctx.fillText(RESULT.testDomain, domainX + 14, domainY + 21);
+
+  // ── Vertical divider ─────────────────────────────────
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(730, 90); ctx.lineTo(730, H - 90); ctx.stroke();
+
+  // ── Score block (right side) ─────────────────────────
+  const cx = 895;
+
+  // Score fraction
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 80px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(RESULT.score, cx, 230);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.font = '400 28px Arial, sans-serif';
+  ctx.fillText('out of ' + RESULT.totalMarks, cx, 268);
+
+  // Percentage
+  ctx.fillStyle = '#42a5f5';
+  ctx.font = 'bold 48px Arial, sans-serif';
+  ctx.fillText(RESULT.percentage + '%', cx, 340);
+
+  // PASS / FAIL badge
+  const badgeY = 365;
+  const badgeW = 180, badgeH = 52;
+  const badgeX = cx - badgeW / 2;
+  const isPassed = RESULT.isPassed;
+  ctx.fillStyle = isPassed ? 'rgba(46,125,50,0.85)' : 'rgba(183,28,28,0.85)';
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 26);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 26px Arial, sans-serif';
+  ctx.fillText(isPassed ? 'PASSED' : 'FAILED', cx, badgeY + 35);
+
+  // ── Bottom footer bar ─────────────────────────────────
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fillRect(0, H - 58, W, 58);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '400 16px Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Verified by ' + RESULT.companyName + ' Test Portal', 52, H - 22);
+
+  ctx.textAlign = 'right';
+  const today = new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  ctx.fillText(today, W - 52, H - 22);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function downloadCard() {
+  const canvas = document.getElementById('shareCanvas');
+  const link = document.createElement('a');
+  link.download = 'result-' + RESULT.studentName.replace(/\s+/g, '-') + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function shareWhatsApp() {
+  const text = encodeURIComponent(
+    `I just completed "${RESULT.testTitle}" on ${RESULT.companyName} Test Portal!\n` +
+    `Score: ${RESULT.score}/${RESULT.totalMarks} (${RESULT.percentage}%) — ${RESULT.isPassed ? 'PASSED' : 'FAILED'}\n` +
+    `Download my result card and check yours at the portal.`
+  );
+  window.open('https://wa.me/?text=' + text, '_blank');
+}
+
+function shareLinkedIn() {
+  const text = encodeURIComponent(
+    `Scored ${RESULT.percentage}% on "${RESULT.testTitle}" (${RESULT.testDomain}) — ${RESULT.isPassed ? 'PASSED' : 'FAILED'} via ${RESULT.companyName} Test Portal.`
+  );
+  window.open('https://www.linkedin.com/sharing/share-offsite/?summary=' + text, '_blank');
+}
+</script>
+
 </body>
 </html>
