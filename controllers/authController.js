@@ -2,6 +2,11 @@ const User    = require('../models/User');
 const College = require('../models/College');
 const bcrypt = require('bcryptjs');
 
+// ── GET /admin-login ──────────────────────────────────────
+exports.getAdminLogin = (req, res) => {
+  res.render('admin-login', { title: 'Admin Login — APARAITECH' });
+};
+
 // ── GET /login ─────────────────────────────────────────
 exports.getLogin = async (req, res) => {
   try {
