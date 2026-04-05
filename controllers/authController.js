@@ -20,9 +20,9 @@ exports.getLogin = async (req, res) => {
 // ── POST /login/register ───────────────────────────────
 exports.register = async (req, res) => {
   try {
-    const { name, collegeName, email, password, confirmPassword } = req.body;
+    const { name, collegeName, email, mobile, password, confirmPassword } = req.body;
 
-    if (!name || !email || !password || !collegeName) {
+    if (!name || !email || !password || !collegeName || !mobile) {
       req.flash('error_msg', 'All fields are required.');
       return res.redirect('/login');
     }
@@ -34,6 +34,11 @@ exports.register = async (req, res) => {
 
     if (password.length < 6) {
       req.flash('error_msg', 'Password must be at least 6 characters.');
+      return res.redirect('/login');
+    }
+
+    if (!/^[6-9]\d{9}$/.test(mobile.trim())) {
+      req.flash('error_msg', 'Please enter a valid 10-digit mobile number.');
       return res.redirect('/login');
     }
 
@@ -51,6 +56,7 @@ exports.register = async (req, res) => {
       collegeName: college ? college.name : collegeName.trim(),
       collegeId: college ? college._id : null,
       email: email.toLowerCase().trim(),
+      mobile: mobile.trim(),
       password,
       role: 'student'
     });
