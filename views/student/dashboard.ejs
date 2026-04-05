@@ -26,6 +26,24 @@
 <main class="container pb-5">
   <%- include('../partials/flash') %>
 
+  <!-- New Workshop Alert -->
+  <% if (typeof newWorkshops !== 'undefined' && newWorkshops.length > 0) { %>
+  <div class="alert border-0 shadow-sm mb-4 fade-in" style="background:linear-gradient(135deg,#fff3e0,#ffe0b2);border-left:4px solid #ff9800 !important;">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="fs-2">🎉</div>
+      <div class="flex-grow-1">
+        <div class="fw-bold">New Workshop<%= newWorkshops.length > 1 ? 's' : '' %> Available!</div>
+        <% newWorkshops.forEach(w => { %>
+          <div class="small text-muted"><i class="bi bi-mortarboard me-1"></i><strong><%= w.title %></strong> · <%= w.isFree ? 'FREE' : '₹' + w.fee %> · <%= new Date(w.startDate).toLocaleDateString('en-IN') %></div>
+        <% }) %>
+      </div>
+      <a href="/student/workshops" class="btn btn-warning btn-sm fw-semibold">
+        <i class="bi bi-arrow-right me-1"></i>View & Enroll
+      </a>
+    </div>
+  </div>
+  <% } %>
+
   <!-- Stats -->
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">

@@ -9,22 +9,47 @@ const Question = require('../models/Question');
 const Result   = require('../models/Result');
 const User     = require('../models/User');
 const { shuffleQuestionsAndOptions } = require('../utils/shuffle');
+const Workshop   = require('../models/Workshop');
+const Enrollment = require('../models/Enrollment');
 const { sendResultEmail } = require('../services/emailService');
 const { generateResultPDF } = require('../services/pdfService');
 
 // ── GET /student/dashboard ────────────────────────────
 exports.getDashboard = async (req, res) => {
   try {
-    const results = await Result.find({
-      $or: [
-        { studentId: req.session.user._id },
-        { studentEmail: req.session.user.email }
-      ]
-    }).sort({ submittedAt: -1 }).populate('testId', 'title domain');
+    const user = await User.findById(req.session.user._id);
+
+    const [results, newWorkshops] = await Promise.all([
+      Result.find({
+        $or: [
+          { studentId: req.session.user._id },
+          { studentEmail: req.session.user.email }
+        ]
+      }).sort({ submittedAt: -1 }).populate('testId', 'title domain'),
+
+      // New workshops in last 7 days for student's college
+      Workshop.find({
+        isActive: true,
+        createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+        $or: [
+          { collegeId: null },
+          { collegeName: '' },
+          ...(user?.collegeId ? [{ collegeId: user.collegeId }] : [])
+        ]
+      }).sort({ createdAt: -1 }).limit(3)
+    ]);
+
+    // Filter out already enrolled
+    const enrolledIds = new Set(
+      (await Enrollment.find({ studentId: req.session.user._id, paymentStatus: { $in: ['paid','free'] } }))
+        .map(e => e.workshopId.toString())
+    );
+    const unenrolledNew = newWorkshops.filter(w => !enrolledIds.has(w._id.toString()));
 
     res.render('student/dashboard', {
       title: 'Student Dashboard — APARAITECH',
-      results
+      results,
+      newWorkshops: unenrolledNew
     });
   } catch (err) {
     console.error('Student dashboard error:', err.message);

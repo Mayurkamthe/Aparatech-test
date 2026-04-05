@@ -64,6 +64,12 @@
               </a>
             </li>
             <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'workshops' ? 'active' : '' %>"
+                 href="/admin/workshops">
+                <i class="bi bi-mortarboard me-1"></i>Workshops
+              </a>
+            </li>
+            <li class="nav-item">
               <a class="nav-link px-3 <%= locals.activePage === 'announce' ? 'active' : '' %>"
                  href="/admin/announce">
                 <i class="bi bi-megaphone me-1"></i>Announce
@@ -80,6 +86,12 @@
               <a class="nav-link px-3 <%= locals.activePage === 'test' ? 'active' : '' %>"
                  href="/student/enter-code">
                 <i class="bi bi-pencil-square me-1"></i>Take Test
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link px-3 <%= locals.activePage === 'workshops' ? 'active' : '' %>"
+                 href="/student/workshops">
+                <i class="bi bi-mortarboard me-1"></i>Workshops
               </a>
             </li>
           <% } %>

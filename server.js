@@ -5,7 +5,8 @@ const flash        = require('connect-flash');
 const path         = require('path');
 const mongoose     = require('mongoose');
 
-const authRoutes    = require('./routes/authRoutes');
+const authRoutes     = require('./routes/authRoutes');
+const workshopRoutes = require('./routes/workshopRoutes');
 const adminRoutes   = require('./routes/adminRoutes');
 const studentRoutes = require('./routes/studentRoutes');
 
@@ -47,6 +48,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/',        authRoutes);
+app.use('/',        workshopRoutes);
 app.use('/admin',   adminRoutes);
 app.use('/student', studentRoutes);
 
