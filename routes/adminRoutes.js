@@ -49,8 +49,10 @@ router.get('/announce',  adminController.getAnnounce);
 router.post('/announce', adminController.postAnnounce);
 
 // ── Users ─────────────────────────────────────────────
-router.get('/users',                    adminController.getUsers);
-router.post('/users/delete-all',        adminController.deleteAllUsers);   // MUST come before /:id
-router.post('/users/:id/delete',        adminController.deleteUser);
+router.get('/users',                          adminController.getUsers);
+router.post('/users/delete-all',              adminController.deleteAllUsers);   // MUST come before /:id
+router.post('/users/:id/delete',              adminController.deleteUser);
+router.post('/users/wa-template',             adminController.saveWaTemplate);
+router.get('/users/wa-template',              adminController.getWaTemplate);
 
 module.exports = router;

@@ -730,3 +730,21 @@ exports.postAnnounce = async (req, res) => {
     res.redirect('/admin/announce');
   }
 };
+
+// ── WA Template: GET /admin/users/wa-template ─────────
+// Returns saved template as JSON (used by frontend)
+let _waTemplate = 'Hi {name}, this is a message from APARAITECH. Please contact us for more information.';
+
+exports.getWaTemplate = (req, res) => {
+  res.json({ template: _waTemplate });
+};
+
+// ── WA Template: POST /admin/users/wa-template ────────
+exports.saveWaTemplate = (req, res) => {
+  const { template } = req.body;
+  if (template && template.trim()) {
+    _waTemplate = template.trim();
+    req.flash('success_msg', 'WhatsApp message template saved!');
+  }
+  res.redirect('/admin/users');
+};
