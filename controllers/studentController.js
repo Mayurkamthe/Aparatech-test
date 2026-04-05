@@ -151,17 +151,33 @@ exports.startTest = async (req, res) => {
       return res.redirect('/student/enter-code');
     }
 
-    // Block if already attempted
+    // Block if already submitted
     const existing = await Result.findOne({ studentId: req.session.user._id, testId: test._id });
     if (existing) {
       req.flash('error_msg', 'You already attempted this test.');
       return res.redirect('/student/dashboard');
     }
 
-    // Fetch all questions for this test
-    const rawQuestions = await Question.find({ testId: test._id });
+    // ── REFRESH FIX: Reuse existing session if same test ──
+    const existingSession = req.session.activeTest;
+    if (existingSession && existingSession.testId === test._id.toString()) {
+      // Same test already in session — reuse stored question order (no reshuffle)
+      const storedQuestions = existingSession.questions;
+      const timeElapsed = Math.floor((Date.now() - existingSession.startTime) / 1000);
+      const durationSeconds = Math.max(0, test.duration * 60 - timeElapsed);
 
-    // Shuffle questions & options using Fisher-Yates
+      console.log(`♻️  Restoring test session for ${req.session.user.email}, time left: ${durationSeconds}s`);
+
+      return res.render('student/test', {
+        title: `${test.title} — APARAITECH`,
+        test,
+        questions: storedQuestions,
+        durationSeconds // Pass remaining time to frontend
+      });
+    }
+
+    // ── NEW SESSION: Fetch and shuffle questions ───────────
+    const rawQuestions = await Question.find({ testId: test._id });
     const shuffledQuestions = shuffleQuestionsAndOptions(rawQuestions, test.questionLimit);
 
     if (shuffledQuestions.length === 0) {

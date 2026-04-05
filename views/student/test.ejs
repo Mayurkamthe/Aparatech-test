@@ -320,6 +320,12 @@ window.addEventListener('load', () => {
   if (wasRestored) {
     restoreUI();
     showRestoredBanner();
+    // Use the smaller of localStorage time vs server time (more accurate)
+    // Server already deducted elapsed time from DURATION_SECONDS on refresh
+    timeLeft = Math.min(timeLeft, DURATION_SECONDS);
+  } else {
+    // Fresh start — use server-provided duration (may be reduced on refresh)
+    timeLeft = DURATION_SECONDS;
   }
 
   document.getElementById('timerDisplay').textContent = formatTime(timeLeft);
