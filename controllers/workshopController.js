@@ -381,12 +381,21 @@ exports.studentGetWorkshopRoom = async (req, res) => {
     });
     const submittedTaskIds = new Set(submissions.map(s => s.materialId.toString()));
 
+    // Attendance data
+    const { getStudentAttendanceData } = require('./attendanceController');
+    const { openSessions, allSessions, markedIds } = await getStudentAttendanceData(
+      workshop._id, req.session.user._id
+    );
+
     res.render('student/workshop-room', {
       title: workshop.title,
       workshop,
       materials,
       submittedTaskIds,
-      submissions
+      submissions,
+      openSessions,
+      allSessions,
+      markedIds
     });
   } catch (err) {
     req.flash('error_msg', 'Failed to load workshop.');
