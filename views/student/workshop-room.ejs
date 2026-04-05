@@ -41,9 +41,9 @@
   <!-- Tabs: Notes | Videos | Links | Tasks -->
   <ul class="nav nav-tabs mb-4" id="materialTabs">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-all">All (<%= materials.length %>)</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notes">📄 Notes</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-video">🎥 Videos</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tasks">📝 Tasks (<%= materials.filter(m=>m.isTask).length %>)</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-notes">Notes</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-video">Videos</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-tasks">Tasks (<%= materials.filter(m=>m.isTask).length %>)</button></li>
   </ul>
 
   <div class="tab-content">

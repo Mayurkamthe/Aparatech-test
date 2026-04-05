@@ -64,7 +64,7 @@ async function sendOTPEmail(toEmail, otp, name = '') {
           </div>
         </div>
         <div style="background:#fff3e0;border-left:4px solid #ff9800;padding:15px 20px;border-radius:4px;">
-          <p style="margin:0;font-size:13px;color:#e65100;">⏰ <strong>Expires in ${expiry} minutes.</strong><br>🔒 Do not share this OTP with anyone.</p>
+          <p style="margin:0;font-size:13px;color:#e65100;">⏰ <strong>Expires in ${expiry} minutes.</strong><br> Do not share this OTP with anyone.</p>
         </div>
       </div>
       ${getFooter()}
@@ -74,13 +74,13 @@ async function sendOTPEmail(toEmail, otp, name = '') {
     const info = await getTransporter().sendMail({
       from: `"${COMPANY.name} Test Portal" <${process.env.SMTP_USER}>`,
       to: toEmail,
-      subject: `🔐 Your Login OTP - ${COMPANY.name}`,
+      subject: `Login OTP - ${COMPANY.name}`,
       html
     });
-    console.log(`✅ OTP email sent to ${toEmail}: ${info.messageId}`);
+    console.log(` OTP email sent to ${toEmail}: ${info.messageId}`);
     return { success: true };
   } catch (err) {
-    console.error(`❌ OTP email failed for ${toEmail}:`, err.message);
+    console.error(` OTP email failed for ${toEmail}:`, err.message);
     throw new Error('Failed to send OTP email. Please try again.');
   }
 }

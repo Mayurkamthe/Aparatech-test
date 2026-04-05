@@ -146,7 +146,7 @@
       </div>
       <div class="modal-body">
         <div class="alert alert-danger">
-          <strong>⚠️ This action cannot be undone!</strong>
+          <strong> This action cannot be undone!</strong>
         </div>
         <p>You are about to delete <strong id="deleteAllCount"></strong> students and <strong>all their test results</strong>.</p>
         <p class="text-muted small">Type <strong>DELETE</strong> below to confirm:</p>
@@ -184,7 +184,7 @@
     document.getElementById('deleteUserName').textContent = name;
     document.getElementById('deleteWarning').textContent =
       attempts > 0
-        ? `⚠️ This will also delete ${attempts} test result(s) for this student.`
+        ? ` This will also delete ${attempts} test result(s) for this student.`
         : 'This student has no test results.';
     document.getElementById('deleteForm').action = '/admin/users/' + id + '/delete';
     new bootstrap.Modal(document.getElementById('deleteModal')).show();

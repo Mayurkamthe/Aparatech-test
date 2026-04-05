@@ -56,9 +56,9 @@
 
     <h2 class="fw-bold mb-1">
       <% if (result.isPassed) { %>
-        🎉 Congratulations! You Passed!
+         Congratulations! You Passed
       <% } else { %>
-        😔 Better Luck Next Time
+         Better Luck Next Time
       <% } %>
     </h2>
     <p class="opacity-75 mb-3"><%= result.testTitle %> — <%= result.testDomain %></p>
@@ -118,8 +118,7 @@
   <div class="alert alert-info border-0 d-flex align-items-center gap-2 mb-4">
     <i class="bi bi-check-circle-fill fs-4 text-primary"></i>
     <div>
-      <strong>Result saved!</strong>
-      Your result has been recorded for <strong><%= result.studentEmail %></strong>.
+      <strong>Result Saved</strong> Your result has been recorded for <strong><%= result.studentEmail %></strong>.
     </div>
   </div>
 
@@ -252,7 +251,7 @@ function drawCard() {
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // ── Background ──────────────────────────────────────
+  //  Background 
   // Deep navy gradient
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0,   '#0d1b3e');
@@ -276,14 +275,14 @@ function drawCard() {
   ctx.beginPath(); ctx.arc(-40, H + 40, 200, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // ── Left accent bar ──────────────────────────────────
+  //  Left accent bar 
   const accent = ctx.createLinearGradient(0, 0, 0, H);
   accent.addColorStop(0, '#42a5f5');
   accent.addColorStop(1, '#1565c0');
   ctx.fillStyle = accent;
   ctx.fillRect(0, 0, 6, H);
 
-  // ── Company name (top-left) ──────────────────────────
+  //  Company name (top-left) 
   ctx.fillStyle = '#90caf9';
   ctx.font = 'bold 28px Arial, sans-serif';
   ctx.textAlign = 'left';
@@ -294,12 +293,12 @@ function drawCard() {
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(52, 72); ctx.lineTo(W - 52, 72); ctx.stroke();
 
-  // ── "Assessment Result" label ────────────────────────
+  //  "Assessment Result" label 
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.font = '500 20px Arial, sans-serif';
   ctx.fillText('Assessment Result', 52, 108);
 
-  // ── Student name ─────────────────────────────────────
+  //  Student name 
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 52px Arial, sans-serif';
   // Truncate if too long
@@ -308,7 +307,7 @@ function drawCard() {
   if (name !== RESULT.studentName) name += '…';
   ctx.fillText(name, 52, 176);
 
-  // ── College name ─────────────────────────────────────
+  //  College name 
   if (RESULT.collegeName) {
     ctx.fillStyle = '#90caf9';
     ctx.font = '400 22px Arial, sans-serif';
@@ -318,7 +317,7 @@ function drawCard() {
     ctx.fillText(college, 52, 214);
   }
 
-  // ── Test title ───────────────────────────────────────
+  //  Test title 
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.font = '400 22px Arial, sans-serif';
   let testTitle = RESULT.testTitle;
@@ -336,12 +335,12 @@ function drawCard() {
   ctx.font = '500 16px Arial, sans-serif';
   ctx.fillText(RESULT.testDomain, domainX + 14, domainY + 21);
 
-  // ── Vertical divider ─────────────────────────────────
+  //  Vertical divider 
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(730, 90); ctx.lineTo(730, H - 90); ctx.stroke();
 
-  // ── Score block (right side) ─────────────────────────
+  //  Score block (right side) 
   const cx = 895;
 
   // Score fraction
@@ -371,7 +370,7 @@ function drawCard() {
   ctx.font = 'bold 26px Arial, sans-serif';
   ctx.fillText(isPassed ? 'PASSED' : 'FAILED', cx, badgeY + 35);
 
-  // ── Bottom footer bar ─────────────────────────────────
+  //  Bottom footer bar 
   ctx.fillStyle = 'rgba(255,255,255,0.06)';
   ctx.fillRect(0, H - 58, W, 58);
 

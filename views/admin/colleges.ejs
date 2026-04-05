@@ -161,7 +161,7 @@
     document.getElementById('deleteCollegeName').textContent = name;
     document.getElementById('deleteCollegeWarning').textContent =
       studentCount > 0
-        ? `⚠️ ${studentCount} student(s) will be unlinked from this college.`
+        ? ` ${studentCount} student(s) will be unlinked from this college.`
         : 'No students are linked to this college.';
     document.getElementById('deleteCollegeForm').action = '/admin/colleges/' + id + '/delete';
     new bootstrap.Modal(document.getElementById('deleteCollegeModal')).show();

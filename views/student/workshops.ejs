@@ -26,7 +26,7 @@
   <div class="alert alert-warning border-0 d-flex align-items-center gap-2 mb-4 shadow-sm">
     <i class="bi bi-bell-fill fs-4 text-warning"></i>
     <div>
-      <strong>🎉 New Workshop<%= newWorkshops.length > 1 ? 's' : '' %>!</strong>
+      <strong> New Workshop<%= newWorkshops.length > 1 ? 's' : '' %>!</strong>
       <span class="ms-1"><%= newWorkshops.map(w => w.title).join(', ') %> — Enroll now!</span>
     </div>
   </div>
@@ -44,7 +44,7 @@
           <div class="d-flex justify-content-between align-items-start">
             <h6 class="fw-bold mb-1"><%= w.title %></h6>
             <% if (w.isEnrolled) { %>
-              <span class="badge bg-success">Enrolled ✓</span>
+              <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Enrolled</span>
             <% } else if (w.isFree || w.fee === 0) { %>
               <span class="badge bg-warning text-dark">FREE</span>
             <% } else { %>

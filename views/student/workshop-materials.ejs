@@ -7,11 +7,8 @@
     <div class="card border-0 shadow-sm">
       <div class="card-body">
         <div class="d-flex align-items-start gap-3">
-          <div class="fs-2">
-            <% if (m.type === 'notes') { %>📄
-            <% } else if (m.type === 'video') { %>🎥
-            <% } else if (m.type === 'link') { %>🔗
-            <% } else { %>📝<% } %>
+          <div class="me-1">
+            <i class="bi bi-<% if (m.type === 'notes') { %>file-text<% } else if (m.type === 'video') { %>play-circle<% } else if (m.type === 'link') { %>link-45deg<% } else { %>clipboard-check<% } %> fs-4 text-primary"></i>
           </div>
           <div class="flex-grow-1">
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -58,7 +55,7 @@
             <!-- Task Submission Form -->
             <% if (m.isTask && !submittedTaskIds.has(m._id.toString())) { %>
             <div class="border rounded p-3 mt-2 bg-light">
-              <div class="fw-semibold small mb-2">📤 Submit Your Task</div>
+              <div class="fw-semibold small mb-2"> Submit Your Task</div>
               <form action="/student/workshops/<%= workshop._id %>/tasks/<%= m._id %>/submit" method="POST">
                 <div class="mb-2">
                   <textarea class="form-control form-control-sm" name="submissionText" rows="3"

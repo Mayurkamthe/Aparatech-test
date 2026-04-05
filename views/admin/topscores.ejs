@@ -134,9 +134,9 @@
               <% topResults.forEach((r, i) => { %>
               <tr class="<%= i === 0 ? 'table-warning' : i === 1 ? 'table-light' : i === 2 ? 'table-light' : '' %>">
                 <td class="fw-bold text-center" style="width:60px;">
-                  <% if (i === 0) { %><span class="fs-5">🥇</span>
-                  <% } else if (i === 1) { %><span class="fs-5">🥈</span>
-                  <% } else if (i === 2) { %><span class="fs-5">🥉</span>
+                  <% if (i === 0) { %><span class="fw-bold text-warning">#1</span>
+                  <% } else if (i === 1) { %><span class="fw-bold text-warning">#1</span>
+                  <% } else if (i === 2) { %><span class="fw-bold text-warning">#1</span>
                   <% } else { %><span class="text-muted">#<%= i+1 %></span>
                   <% } %>
                 </td>
