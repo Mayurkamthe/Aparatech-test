@@ -62,8 +62,80 @@ exports.getDashboard = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.session.user._id);
-    res.render('student/profile', { title: 'My Profile', user });
+
+    // Test results
+    const results = await Result.find({
+      $or: [
+        { studentId: req.session.user._id },
+        { studentEmail: req.session.user.email }
+      ]
+    }).sort({ submittedAt: -1 });
+
+    // Workshop enrollments with workshop details
+    const enrollments = await Enrollment.find({
+      studentId: req.session.user._id,
+      paymentStatus: { $in: ['paid', 'free'] }
+    }).sort({ enrolledAt: -1 });
+
+    const workshopIds = enrollments.map(e => e.workshopId);
+    const workshops   = await Workshop.find({ _id: { $in: workshopIds } });
+    const workshopMap = {};
+    workshops.forEach(w => { workshopMap[w._id.toString()] = w; });
+
+    // Attendance per workshop
+    const AttendanceSession = require('../models/AttendanceSession');
+    const AttendanceRecord  = require('../models/AttendanceRecord');
+
+    const enrollmentsWithAttendance = await Promise.all(enrollments.map(async (e) => {
+      const wid = e.workshopId.toString();
+      const totalSessions  = await AttendanceSession.countDocuments({ workshopId: e.workshopId });
+      const markedSessions = await AttendanceRecord.countDocuments({
+        workshopId: e.workshopId,
+        studentId: req.session.user._id
+      });
+
+      // Task submissions for this workshop
+      const TaskSubmission = require('../models/TaskSubmission');
+      const StudyMaterial  = require('../models/StudyMaterial');
+      const totalTasks  = await StudyMaterial.countDocuments({ workshopId: e.workshopId, isTask: true });
+      const doneTasksCount  = await TaskSubmission.countDocuments({
+        workshopId: e.workshopId,
+        studentId: req.session.user._id
+      });
+
+      return {
+        ...e.toObject(),
+        workshop: workshopMap[wid] || null,
+        totalSessions,
+        markedSessions,
+        attendancePct: totalSessions > 0 ? Math.round(markedSessions / totalSessions * 100) : null,
+        totalTasks,
+        doneTasksCount
+      };
+    }));
+
+    // Computed test stats
+    const testStats = {
+      total:   results.length,
+      passed:  results.filter(r => r.isPassed).length,
+      failed:  results.filter(r => !r.isPassed).length,
+      avgPct:  results.length > 0
+                 ? (results.reduce((a, r) => a + r.percentage, 0) / results.length).toFixed(1)
+                 : null,
+      bestPct: results.length > 0
+                 ? Math.max(...results.map(r => r.percentage)).toFixed(1)
+                 : null
+    };
+
+    res.render('student/profile', {
+      title: 'My Profile — APARAITECH',
+      user,
+      results,
+      testStats,
+      enrollments: enrollmentsWithAttendance
+    });
   } catch (err) {
+    console.error('Profile error:', err.message);
     req.flash('error_msg', 'Failed to load profile.');
     res.redirect('/student/dashboard');
   }
