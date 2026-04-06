@@ -244,4 +244,81 @@ async function sendAnnouncementEmail(toEmails, subject, message, adminName) {
   return { sent, failed, total: toEmails.length };
 }
 
-module.exports = { sendResultEmail, sendAnnouncementEmail };
+// ── SEND PAYMENT RECEIPT EMAIL ────────────────────────
+async function sendReceiptEmail({ enrollment, workshop, student }) {
+  const { generateReceiptPDFBuffer } = require('./pdfService');
+
+  const receiptNo = `RCP-${enrollment.paymentId || enrollment._id.toString().slice(-8).toUpperCase()}`;
+  const paidDate  = new Date(enrollment.enrolledAt || Date.now())
+    .toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  const amtText  = enrollment.fee > 0 ? `₹${enrollment.fee.toLocaleString('en-IN')}` : 'FREE';
+  const typeText = enrollment.paymentStatus === 'free' ? 'Free Enrollment' : 'Online Payment (Razorpay)';
+
+  const html = `
+    <div style="max-width:620px;margin:0 auto;font-family:'Segoe UI',Helvetica,Arial,sans-serif;background:#f4f6f9;">
+      ${getHeader()}
+      <div style="background:#ffffff;padding:36px 40px 0;">
+        <p style="margin:0 0 6px;font-size:15px;color:#333;">Dear <strong>${student.name || 'Student'}</strong>,</p>
+        <p style="margin:0 0 24px;font-size:14px;color:#555;line-height:1.6;">
+          Your enrollment for <strong>${workshop.title}</strong> has been confirmed.
+          Please find your payment receipt attached to this email.
+        </p>
+
+        <!-- Receipt Summary Box -->
+        <div style="background:#f0f8ff;border:1px solid #b3d4f5;border-radius:8px;padding:24px;margin-bottom:24px;">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <tr><td style="color:#666;padding:6px 0;">Receipt No</td><td style="font-weight:600;color:#222;">${receiptNo}</td></tr>
+            <tr><td style="color:#666;padding:6px 0;">Workshop</td><td style="font-weight:600;color:#222;">${workshop.title}</td></tr>
+            <tr><td style="color:#666;padding:6px 0;">Date</td><td style="color:#333;">${paidDate}</td></tr>
+            <tr><td style="color:#666;padding:6px 0;">Amount Paid</td><td style="font-weight:700;font-size:16px;color:#1b5e20;">${amtText}</td></tr>
+            <tr><td style="color:#666;padding:6px 0;">Payment Type</td><td style="color:#333;">${typeText}</td></tr>
+            ${enrollment.paymentId ? `<tr><td style="color:#666;padding:6px 0;">Transaction ID</td><td style="font-family:monospace;color:#555;">${enrollment.paymentId}</td></tr>` : ''}
+          </table>
+        </div>
+
+        <!-- Workshop Details -->
+        <div style="background:#f9f9f9;border-radius:6px;padding:16px 20px;margin-bottom:24px;font-size:13px;color:#555;line-height:1.8;">
+          <strong style="color:#333;">Workshop Details</strong><br>
+          Dates: ${new Date(workshop.startDate).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}
+          – ${new Date(workshop.endDate).toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}<br>
+          Venue: ${workshop.venue || 'Online / TBD'}<br>
+          Instructor: ${workshop.instructor || COMPANY.name}
+        </div>
+
+        <div style="background:#e8f5e9;border-left:4px solid #43a047;padding:14px 18px;border-radius:4px;margin-bottom:28px;">
+          <p style="margin:0;font-size:13px;color:#1b5e20;">
+            Your receipt PDF is attached to this email. Log in to the portal to access your workshop materials.
+          </p>
+        </div>
+
+        <p style="font-size:13px;color:#555;margin:0 0 4px;">Regards,</p>
+        <p style="font-size:14px;font-weight:600;color:#0d47a1;margin:0 0 32px;">${COMPANY.name} — Workshop Team</p>
+      </div>
+      ${getFooter()}
+    </div>`;
+
+  try {
+    // Generate PDF buffer
+    const pdfBuffer = await generateReceiptPDFBuffer({ enrollment, workshop, student });
+
+    const info = await getTransporter().sendMail({
+      from:    `"${COMPANY.name} Test Portal" <${process.env.SMTP_USER}>`,
+      to:      student.email,
+      subject: `Enrollment Confirmed: ${workshop.title} — ${COMPANY.name}`,
+      html,
+      attachments: [{
+        filename:    `receipt-${receiptNo}.pdf`,
+        content:     pdfBuffer,
+        contentType: 'application/pdf'
+      }]
+    });
+    console.log(`Receipt email sent to ${student.email}: ${info.messageId}`);
+    return { success: true };
+  } catch (err) {
+    console.error(`Receipt email failed for ${student.email}:`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+module.exports = { sendResultEmail, sendAnnouncementEmail, sendReceiptEmail };

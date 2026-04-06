@@ -18,7 +18,12 @@
         <h1><i class="bi bi-mortarboard me-2"></i><%= workshop.title %></h1>
         <p><%= workshop.instructor %> · <%= new Date(workshop.startDate).toLocaleDateString('en-IN') %> – <%= new Date(workshop.endDate).toLocaleDateString('en-IN') %></p>
       </div>
-      <a href="/student/workshops" class="btn btn-light"><i class="bi bi-arrow-left me-1"></i>All Workshops</a>
+      <div class="d-flex gap-2">
+        <a href="/student/workshops/<%= workshop._id %>/receipt" class="btn btn-outline-light btn-sm">
+          <i class="bi bi-receipt me-1"></i>Receipt
+        </a>
+        <a href="/student/workshops" class="btn btn-light"><i class="bi bi-arrow-left me-1"></i>All Workshops</a>
+      </div>
     </div>
   </div>
 </div>

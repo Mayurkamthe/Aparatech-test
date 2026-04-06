@@ -386,4 +386,190 @@ function buildDocument(doc, result) {
   drawPageFooter(doc);
 }
 
-module.exports = { generateResultPDF, generateResultPDFBuffer };
+// ─────────────────────────────────────────────────────────
+// Payment Receipt PDF
+// ─────────────────────────────────────────────────────────
+
+function generateReceiptPDF(res, { enrollment, workshop, student }) {
+  const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition',
+    `attachment; filename="receipt-${enrollment.paymentId || enrollment._id}.pdf"`);
+  doc.pipe(res);
+
+  _buildReceipt(doc, { enrollment, workshop, student });
+
+  doc.end();
+}
+
+async function generateReceiptPDFBuffer({ enrollment, workshop, student }) {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
+    const chunks = [];
+    doc.on('data', c => chunks.push(c));
+    doc.on('end', () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+    _buildReceipt(doc, { enrollment, workshop, student });
+    doc.end();
+  });
+}
+
+function _buildReceipt(doc, { enrollment, workshop, student }) {
+  const receiptNo = `RCP-${enrollment.paymentId || enrollment._id.toString().slice(-8).toUpperCase()}`;
+  const paidDate  = enrollment.enrolledAt
+    ? new Date(enrollment.enrolledAt).toLocaleString('en-IN', {
+        day: '2-digit', month: 'long', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      })
+    : new Date().toLocaleString('en-IN');
+
+  drawPageHeader(doc, 'Payment Receipt');
+
+  // Receipt No + Date (right aligned)
+  const topY = doc.y;
+  doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+     .text(`Receipt No: ${receiptNo}`, MARGIN, topY, { align: 'right', width: CONTENT });
+  doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+     .text(`Date: ${paidDate}`, MARGIN, topY + 14, { align: 'right', width: CONTENT });
+
+  // RECEIPT heading
+  doc.fillColor(C.black).font('Helvetica-Bold').fontSize(22)
+     .text('PAYMENT RECEIPT', MARGIN, topY, { width: CONTENT * 0.55 });
+
+  doc.y = topY + 52;
+  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 20;
+
+  // ── Bill To ──────────────────────────────────────────
+  doc.fillColor(C.midGray).font('Helvetica').fontSize(8)
+     .text('BILL TO', MARGIN, doc.y);
+  doc.y += 14;
+
+  doc.fillColor(C.black).font('Helvetica-Bold').fontSize(12)
+     .text(student.name || student.email, MARGIN, doc.y);
+  doc.y += 16;
+
+  doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+     .text(student.email, MARGIN, doc.y);
+  doc.y += 14;
+
+  if (student.mobile) {
+    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+       .text(`Mobile: ${student.mobile}`, MARGIN, doc.y);
+    doc.y += 14;
+  }
+
+  if (student.collegeName) {
+    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+       .text(student.collegeName, MARGIN, doc.y);
+    doc.y += 14;
+  }
+
+  doc.y += 16;
+  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 20;
+
+  // ── Workshop Details ─────────────────────────────────
+  doc.fillColor(C.midGray).font('Helvetica').fontSize(8)
+     .text('WORKSHOP DETAILS', MARGIN, doc.y);
+  doc.y += 14;
+
+  const labelX = MARGIN;
+  const valueX = MARGIN + 160;
+  const rowH   = 20;
+
+  const details = [
+    ['Workshop Title',  workshop.title],
+    ['Instructor',      workshop.instructor || COMPANY.name],
+    ['Start Date',      new Date(workshop.startDate).toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' })],
+    ['End Date',        new Date(workshop.endDate).toLocaleDateString('en-IN',   { day:'2-digit', month:'long', year:'numeric' })],
+    ['Venue',           workshop.venue || 'Online / TBD'],
+  ];
+
+  details.forEach(([label, val], i) => {
+    const rowY = doc.y;
+    if (i % 2 === 1) doc.rect(MARGIN, rowY - 4, CONTENT, rowH).fill(C.rowAlt);
+    doc.fillColor(C.midGray).font('Helvetica').fontSize(9).text(label, labelX, rowY);
+    doc.fillColor(C.black).font('Helvetica').fontSize(9).text(val, valueX, rowY, { width: CONTENT - 160 });
+    doc.y = rowY + rowH;
+  });
+
+  doc.y += 16;
+  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 20;
+
+  // ── Payment Summary table ────────────────────────────
+  doc.fillColor(C.midGray).font('Helvetica').fontSize(8)
+     .text('PAYMENT SUMMARY', MARGIN, doc.y);
+  doc.y += 14;
+
+  // Table header
+  const col1 = MARGIN, col2 = MARGIN + 280, col3 = MARGIN + 380;
+  const hdrY = doc.y;
+  doc.rect(MARGIN, hdrY, CONTENT, 22).fill(C.black);
+  doc.fillColor(C.white).font('Helvetica-Bold').fontSize(9)
+     .text('Description', col1 + 8, hdrY + 7)
+     .text('Qty', col2, hdrY + 7, { width: 80, align: 'center' })
+     .text('Amount', col3, hdrY + 7, { width: CONTENT - (col3 - MARGIN) - 8, align: 'right' });
+  doc.y = hdrY + 22;
+
+  // Row
+  const rowY = doc.y;
+  doc.rect(MARGIN, rowY, CONTENT, 24).fill(C.rowAlt);
+  doc.fillColor(C.black).font('Helvetica').fontSize(10)
+     .text(`${workshop.title} — Workshop Enrollment`, col1 + 8, rowY + 7, { width: col2 - col1 - 16 });
+  doc.fillColor(C.black).font('Helvetica').fontSize(10)
+     .text('1', col2, rowY + 7, { width: 80, align: 'center' });
+  const amtText = enrollment.fee > 0 ? `Rs. ${enrollment.fee.toLocaleString('en-IN')}` : 'Free';
+  doc.fillColor(C.black).font('Helvetica').fontSize(10)
+     .text(amtText, col3, rowY + 7, { width: CONTENT - (col3 - MARGIN) - 8, align: 'right' });
+  doc.y = rowY + 24;
+
+  // Total row
+  doc.rect(MARGIN, doc.y, CONTENT, 28).fill(C.black);
+  doc.fillColor(C.white).font('Helvetica-Bold').fontSize(11)
+     .text('TOTAL PAID', col1 + 8, doc.y + 8);
+  const totalText = enrollment.fee > 0 ? `Rs. ${enrollment.fee.toLocaleString('en-IN')}` : 'FREE';
+  doc.fillColor(C.white).font('Helvetica-Bold').fontSize(13)
+     .text(totalText, col3, doc.y + 7, { width: CONTENT - (col3 - MARGIN) - 8, align: 'right' });
+  doc.y += 28;
+
+  doc.y += 20;
+
+  // Payment method row
+  if (enrollment.paymentId) {
+    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+       .text(`Payment Method: Razorpay Online Payment`, MARGIN, doc.y);
+    doc.y += 14;
+    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+       .text(`Transaction ID: ${enrollment.paymentId}`, MARGIN, doc.y);
+    doc.y += 14;
+  } else {
+    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
+       .text('Enrollment Type: Free (No payment required)', MARGIN, doc.y);
+    doc.y += 14;
+  }
+
+  doc.y += 24;
+
+  // Status stamp
+  doc.save();
+  doc.fillColor(enrollment.paymentStatus === 'paid' ? '#1b5e20' : '#0d47a1')
+     .font('Helvetica-Bold').fontSize(28).opacity(0.12)
+     .text(enrollment.paymentStatus === 'paid' ? 'PAID' : 'ENROLLED',
+           MARGIN + 160, doc.y - 10, { rotate: -18 });
+  doc.restore();
+
+  doc.y += 20;
+  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 16;
+
+  // Footer note
+  doc.fillColor(C.midGray).font('Helvetica-Oblique').fontSize(8)
+     .text(
+       'This is a computer-generated receipt and does not require a signature. ' +
+       'For queries, contact ' + COMPANY.email,
+       MARGIN, doc.y, { width: CONTENT, align: 'center' }
+     );
+
+  drawPageFooter(doc);
+}
+
+module.exports = { generateResultPDF, generateResultPDFBuffer, generateReceiptPDF, generateReceiptPDFBuffer };

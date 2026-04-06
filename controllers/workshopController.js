@@ -13,6 +13,8 @@ const College        = require('../models/College');
 const User           = require('../models/User');
 const Razorpay       = require('razorpay');
 const crypto         = require('crypto');
+const { sendReceiptEmail }    = require('../services/emailService');
+const { generateReceiptPDF }  = require('../services/pdfService');
 
 // Razorpay instance (lazy)
 function getRazorpay() {
@@ -288,7 +290,7 @@ exports.createOrder = async (req, res) => {
     // Free workshop — enroll directly
     if (workshop.isFree || workshop.fee === 0) {
       const user = await User.findById(req.session.user._id);
-      await Enrollment.findOneAndUpdate(
+      const enrollment = await Enrollment.findOneAndUpdate(
         { workshopId: workshop._id, studentId: req.session.user._id },
         {
           workshopTitle: workshop.title,
@@ -303,6 +305,12 @@ exports.createOrder = async (req, res) => {
         { upsert: true, new: true }
       );
       await Workshop.findByIdAndUpdate(workshop._id, { $inc: { enrolledCount: 1 } });
+
+      // Send receipt email async
+      sendReceiptEmail({ enrollment, workshop, student: user }).catch(err =>
+        console.error('Receipt email error:', err.message)
+      );
+
       return res.json({ free: true, redirect: `/student/workshops/${workshop._id}` });
     }
 
@@ -368,11 +376,21 @@ exports.verifyPayment = async (req, res) => {
     }
 
     // Update enrollment
-    await Enrollment.findOneAndUpdate(
+    const enrollment = await Enrollment.findOneAndUpdate(
       { workshopId, studentId: req.session.user._id },
-      { paymentStatus: 'paid', paymentId: razorpay_payment_id }
+      { paymentStatus: 'paid', paymentId: razorpay_payment_id },
+      { new: true }
     );
     await Workshop.findByIdAndUpdate(workshopId, { $inc: { enrolledCount: 1 } });
+
+    // Send receipt email async
+    const [workshop, student] = await Promise.all([
+      Workshop.findById(workshopId),
+      User.findById(req.session.user._id)
+    ]);
+    sendReceiptEmail({ enrollment, workshop, student }).catch(err =>
+      console.error('Receipt email error:', err.message)
+    );
 
     res.json({ success: true, redirect: `/student/workshops/${workshopId}` });
   } catch (err) {
@@ -381,8 +399,29 @@ exports.verifyPayment = async (req, res) => {
   }
 };
 
-// GET /student/workshops/:id (workshop room)
-exports.studentGetWorkshopRoom = async (req, res) => {
+// GET /student/workshops/:id/receipt
+exports.downloadReceipt = async (req, res) => {
+  try {
+    const enrollment = await Enrollment.findOne({
+      workshopId: req.params.id,
+      studentId:  req.session.user._id,
+      paymentStatus: { $in: ['paid', 'free'] }
+    });
+    if (!enrollment) {
+      req.flash('error_msg', 'No enrollment found.');
+      return res.redirect(`/student/workshops/${req.params.id}`);
+    }
+    const [workshop, student] = await Promise.all([
+      Workshop.findById(req.params.id),
+      User.findById(req.session.user._id)
+    ]);
+    generateReceiptPDF(res, { enrollment, workshop, student });
+  } catch (err) {
+    console.error('Receipt download error:', err.message);
+    req.flash('error_msg', 'Failed to generate receipt.');
+    res.redirect(`/student/workshops/${req.params.id}`);
+  }
+}; = async (req, res) => {
   try {
     const workshop = await Workshop.findById(req.params.id);
     if (!workshop) { req.flash('error_msg', 'Workshop not found.'); return res.redirect('/student/workshops'); }

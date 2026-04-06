@@ -32,5 +32,6 @@ router.post('/student/workshops/:workshopId/tasks/:materialId/submit', requireSt
 
 // ── Student attendance ─────────────────────────────────
 router.post('/student/workshops/:workshopId/attendance/mark', requireStudent, ac.studentMarkAttendance);
+router.get('/student/workshops/:id/receipt',                  requireStudent, wc.downloadReceipt);
 
 module.exports = router;
