@@ -416,160 +416,180 @@ async function generateReceiptPDFBuffer({ enrollment, workshop, student }) {
 }
 
 function _buildReceipt(doc, { enrollment, workshop, student }) {
-  const receiptNo = `RCP-${enrollment.paymentId || enrollment._id.toString().slice(-8).toUpperCase()}`;
-  const paidDate  = enrollment.enrolledAt
-    ? new Date(enrollment.enrolledAt).toLocaleString('en-IN', {
-        day: '2-digit', month: 'long', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      })
-    : new Date().toLocaleString('en-IN');
+  const BRAND   = '#1a237e';   // deep indigo
+  const BRAND2  = '#283593';   // indigo mid
+  const GOLD    = '#f9a825';   // amber gold
+  const GREEN   = '#2e7d32';   // success green
+  const TEAL    = '#00695c';   // teal accent
+  const LGRAY   = '#f3f4f8';   // light bg
+  const MGRAY   = '#546e7a';   // mid gray text
+  const WHITE   = '#ffffff';
+  const BLACK   = '#1a1a2e';
 
-  drawPageHeader(doc, 'Payment Receipt');
+  const W = doc.page.width;
+  const H = doc.page.height;
 
-  // Receipt No + Date (right aligned)
-  const topY = doc.y;
-  doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-     .text(`Receipt No: ${receiptNo}`, MARGIN, topY, { align: 'right', width: CONTENT });
-  doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-     .text(`Date: ${paidDate}`, MARGIN, topY + 14, { align: 'right', width: CONTENT });
+  // ── HEADER BANNER ──────────────────────────────────────────
+  // Deep indigo top band
+  doc.rect(0, 0, W, 110).fill(BRAND);
 
-  // RECEIPT heading
-  doc.fillColor(C.black).font('Helvetica-Bold').fontSize(22)
-     .text('PAYMENT RECEIPT', MARGIN, topY, { width: CONTENT * 0.55 });
+  // Gold accent stripe
+  doc.rect(0, 107, W, 5).fill(GOLD);
 
-  doc.y = topY + 52;
-  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 20;
+  // Company name
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(22)
+     .text(COMPANY.name, MARGIN, 28);
 
-  // ── Bill To ──────────────────────────────────────────
-  doc.fillColor(C.midGray).font('Helvetica').fontSize(8)
-     .text('BILL TO', MARGIN, doc.y);
-  doc.y += 14;
+  // Tagline
+  doc.fillColor('#9fa8da').font('Helvetica').fontSize(10)
+     .text('Official Workshop Enrollment Receipt', MARGIN, 56);
 
-  doc.fillColor(C.black).font('Helvetica-Bold').fontSize(12)
-     .text(student.name || student.email, MARGIN, doc.y);
-  doc.y += 16;
+  // RECEIPT label top-right
+  doc.fillColor(GOLD).font('Helvetica-Bold').fontSize(28)
+     .text('RECEIPT', 0, 30, { align: 'right', width: W - MARGIN });
 
-  doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-     .text(student.email, MARGIN, doc.y);
-  doc.y += 14;
+  // Receipt number + date top-right
+  const receiptNo = `RCP-${(enrollment.paymentId || enrollment._id.toString().slice(-8)).toUpperCase()}`;
+  const paidDate  = new Date(enrollment.enrolledAt || Date.now())
+    .toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
 
-  if (student.mobile) {
-    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-       .text(`Mobile: ${student.mobile}`, MARGIN, doc.y);
-    doc.y += 14;
-  }
+  doc.fillColor('#c5cae9').font('Helvetica').fontSize(9)
+     .text(`No: ${receiptNo}`, 0, 64, { align: 'right', width: W - MARGIN });
+  doc.fillColor('#c5cae9').font('Helvetica').fontSize(9)
+     .text(`Date: ${paidDate}`, 0, 78, { align: 'right', width: W - MARGIN });
 
+  // ── BILLED TO + WORKSHOP INFO (two columns) ────────────────
+  const colL  = MARGIN;
+  const colR  = MARGIN + CONTENT / 2 + 10;
+  const colW2 = CONTENT / 2 - 10;
+  let   rowY  = 130;
+
+  // Left column header
+  doc.rect(colL, rowY, colW2, 22).fill(BRAND2);
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(9)
+     .text('BILLED TO', colL + 10, rowY + 7);
+  rowY += 22;
+
+  // Left column body
+  doc.rect(colL, rowY, colW2, 80).fill(LGRAY);
+  doc.fillColor(BLACK).font('Helvetica-Bold').fontSize(11)
+     .text(student.name || 'Student', colL + 10, rowY + 10, { width: colW2 - 20 });
+  doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+     .text(student.email, colL + 10, rowY + 28, { width: colW2 - 20 });
   if (student.collegeName) {
-    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-       .text(student.collegeName, MARGIN, doc.y);
-    doc.y += 14;
+    doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+       .text(student.collegeName, colL + 10, rowY + 44, { width: colW2 - 20 });
   }
+  if (student.mobile) {
+    doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+       .text(`Mobile: ${student.mobile}`, colL + 10, rowY + 60, { width: colW2 - 20 });
+  }
+  rowY += 80;
 
-  doc.y += 16;
-  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 20;
+  // Right column header
+  const rY0 = 130;
+  doc.rect(colR, rY0, colW2, 22).fill(TEAL);
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(9)
+     .text('WORKSHOP DETAILS', colR + 10, rY0 + 7);
 
-  // ── Workshop Details ─────────────────────────────────
-  doc.fillColor(C.midGray).font('Helvetica').fontSize(8)
-     .text('WORKSHOP DETAILS', MARGIN, doc.y);
-  doc.y += 14;
+  // Right column body
+  doc.rect(colR, rY0 + 22, colW2, 80).fill(LGRAY);
+  doc.fillColor(BLACK).font('Helvetica-Bold').fontSize(10)
+     .text(workshop.title, colR + 10, rY0 + 32, { width: colW2 - 20 });
 
-  const labelX = MARGIN;
-  const valueX = MARGIN + 160;
-  const rowH   = 20;
+  const wStart = new Date(workshop.startDate).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+  const wEnd   = new Date(workshop.endDate).toLocaleDateString('en-IN',   { day:'2-digit', month:'short', year:'numeric' });
 
-  const details = [
-    ['Workshop Title',  workshop.title],
-    ['Instructor',      workshop.instructor || COMPANY.name],
-    ['Start Date',      new Date(workshop.startDate).toLocaleDateString('en-IN', { day:'2-digit', month:'long', year:'numeric' })],
-    ['End Date',        new Date(workshop.endDate).toLocaleDateString('en-IN',   { day:'2-digit', month:'long', year:'numeric' })],
-    ['Venue',           workshop.venue || 'Online / TBD'],
-  ];
+  doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+     .text(`${wStart}  —  ${wEnd}`, colR + 10, rY0 + 52, { width: colW2 - 20 });
+  doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+     .text(`Venue: ${workshop.venue || 'Online / TBD'}`, colR + 10, rY0 + 66, { width: colW2 - 20 });
+  doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+     .text(`Instructor: ${workshop.instructor || COMPANY.name}`, colR + 10, rY0 + 80, { width: colW2 - 20 });
 
-  details.forEach(([label, val], i) => {
-    const rowY = doc.y;
-    if (i % 2 === 1) doc.rect(MARGIN, rowY - 4, CONTENT, rowH).fill(C.rowAlt);
-    doc.fillColor(C.midGray).font('Helvetica').fontSize(9).text(label, labelX, rowY);
-    doc.fillColor(C.black).font('Helvetica').fontSize(9).text(val, valueX, rowY, { width: CONTENT - 160 });
-    doc.y = rowY + rowH;
-  });
+  // ── PAYMENT TABLE ──────────────────────────────────────────
+  rowY = Math.max(rowY, rY0 + 102) + 20;
 
-  doc.y += 16;
-  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 20;
-
-  // ── Payment Summary table ────────────────────────────
-  doc.fillColor(C.midGray).font('Helvetica').fontSize(8)
-     .text('PAYMENT SUMMARY', MARGIN, doc.y);
-  doc.y += 14;
+  // Section label
+  doc.rect(MARGIN, rowY, CONTENT, 2).fill(GOLD);
+  rowY += 8;
+  doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(10)
+     .text('PAYMENT SUMMARY', MARGIN, rowY);
+  rowY += 20;
 
   // Table header
-  const col1 = MARGIN, col2 = MARGIN + 280, col3 = MARGIN + 380;
-  const hdrY = doc.y;
-  doc.rect(MARGIN, hdrY, CONTENT, 22).fill(C.black);
-  doc.fillColor(C.white).font('Helvetica-Bold').fontSize(9)
-     .text('Description', col1 + 8, hdrY + 7)
-     .text('Qty', col2, hdrY + 7, { width: 80, align: 'center' })
-     .text('Amount', col3, hdrY + 7, { width: CONTENT - (col3 - MARGIN) - 8, align: 'right' });
-  doc.y = hdrY + 22;
+  const c1 = MARGIN, c2 = MARGIN + 300, c3 = MARGIN + 400;
+  doc.rect(MARGIN, rowY, CONTENT, 24).fill(BRAND);
+  doc.fillColor(WHITE).font('Helvetica-Bold').fontSize(9)
+     .text('Description',  c1 + 10, rowY + 8)
+     .text('Qty',          c2,      rowY + 8, { width: 80, align: 'center' })
+     .text('Amount',       c3,      rowY + 8, { width: CONTENT - (c3 - MARGIN) - 10, align: 'right' });
+  rowY += 24;
 
-  // Row
-  const rowY = doc.y;
-  doc.rect(MARGIN, rowY, CONTENT, 24).fill(C.rowAlt);
-  doc.fillColor(C.black).font('Helvetica').fontSize(10)
-     .text(`${workshop.title} — Workshop Enrollment`, col1 + 8, rowY + 7, { width: col2 - col1 - 16 });
-  doc.fillColor(C.black).font('Helvetica').fontSize(10)
-     .text('1', col2, rowY + 7, { width: 80, align: 'center' });
-  const amtText = enrollment.fee > 0 ? `Rs. ${enrollment.fee.toLocaleString('en-IN')}` : 'Free';
-  doc.fillColor(C.black).font('Helvetica').fontSize(10)
-     .text(amtText, col3, rowY + 7, { width: CONTENT - (col3 - MARGIN) - 8, align: 'right' });
-  doc.y = rowY + 24;
+  // Item row
+  doc.rect(MARGIN, rowY, CONTENT, 26).fill(LGRAY);
+  const amtText = enrollment.fee > 0 ? `Rs. ${enrollment.fee.toLocaleString('en-IN')}` : 'FREE';
+  doc.fillColor(BLACK).font('Helvetica').fontSize(10)
+     .text(`${workshop.title} — Enrollment`, c1 + 10, rowY + 8, { width: c2 - c1 - 20 });
+  doc.fillColor(BLACK).font('Helvetica').fontSize(10)
+     .text('1', c2, rowY + 8, { width: 80, align: 'center' });
+  doc.fillColor(BLACK).font('Helvetica').fontSize(10)
+     .text(amtText, c3, rowY + 8, { width: CONTENT - (c3 - MARGIN) - 10, align: 'right' });
+  rowY += 26;
 
-  // Total row
-  doc.rect(MARGIN, doc.y, CONTENT, 28).fill(C.black);
-  doc.fillColor(C.white).font('Helvetica-Bold').fontSize(11)
-     .text('TOTAL PAID', col1 + 8, doc.y + 8);
-  const totalText = enrollment.fee > 0 ? `Rs. ${enrollment.fee.toLocaleString('en-IN')}` : 'FREE';
-  doc.fillColor(C.white).font('Helvetica-Bold').fontSize(13)
-     .text(totalText, col3, doc.y + 7, { width: CONTENT - (col3 - MARGIN) - 8, align: 'right' });
-  doc.y += 28;
+  // Divider
+  doc.rect(MARGIN, rowY, CONTENT, 1).fill('#ddd'); rowY += 1;
 
-  doc.y += 20;
+  // Total row — gold background
+  doc.rect(MARGIN, rowY, CONTENT, 32).fill(GOLD);
+  doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(12)
+     .text('TOTAL PAID', c1 + 10, rowY + 10);
+  doc.fillColor(BRAND).font('Helvetica-Bold').fontSize(14)
+     .text(amtText, c3, rowY + 9, { width: CONTENT - (c3 - MARGIN) - 10, align: 'right' });
+  rowY += 32;
 
-  // Payment method row
+  // ── PAYMENT META ───────────────────────────────────────────
+  rowY += 16;
   if (enrollment.paymentId) {
-    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-       .text(`Payment Method: Razorpay Online Payment`, MARGIN, doc.y);
-    doc.y += 14;
-    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-       .text(`Transaction ID: ${enrollment.paymentId}`, MARGIN, doc.y);
-    doc.y += 14;
+    doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+       .text(`Payment Method: Razorpay Online Payment     Transaction ID: ${enrollment.paymentId}`,
+             MARGIN, rowY, { width: CONTENT });
   } else {
-    doc.fillColor(C.midGray).font('Helvetica').fontSize(9)
-       .text('Enrollment Type: Free (No payment required)', MARGIN, doc.y);
-    doc.y += 14;
+    doc.fillColor(MGRAY).font('Helvetica').fontSize(9)
+       .text('Enrollment Type: Free — No payment required', MARGIN, rowY);
   }
+  rowY += 20;
 
-  doc.y += 24;
+  // ── STATUS STAMP ───────────────────────────────────────────
+  const isPaid   = enrollment.paymentStatus === 'paid' || enrollment.paymentStatus === 'free';
+  const stampClr = isPaid ? GREEN : '#e65100';
+  const stampTxt = isPaid ? 'PAID' : 'PENDING';
 
-  // Status stamp
-  doc.save();
-  doc.fillColor(enrollment.paymentStatus === 'paid' ? '#1b5e20' : '#0d47a1')
-     .font('Helvetica-Bold').fontSize(28).opacity(0.12)
-     .text(enrollment.paymentStatus === 'paid' ? 'PAID' : 'ENROLLED',
-           MARGIN + 160, doc.y - 10, { rotate: -18 });
-  doc.restore();
+  // Stamp circle
+  const stampX = MARGIN + CONTENT - 90;
+  const stampY = rowY - 60;
+  doc.circle(stampX, stampY, 38).lineWidth(3).stroke(stampClr);
+  doc.circle(stampX, stampY, 34).lineWidth(1).stroke(stampClr).opacity(0.3);
+  doc.opacity(1);
+  doc.fillColor(stampClr).font('Helvetica-Bold').fontSize(14)
+     .text(stampTxt, stampX - 30, stampY - 8, { width: 60, align: 'center' });
+  rowY += 10;
 
-  doc.y += 20;
-  doc.rect(MARGIN, doc.y, CONTENT, 0.5).fill(C.rule); doc.y += 16;
+  // ── BOTTOM FOOTER BAND ─────────────────────────────────────
+  const footY = H - 56;
+  doc.rect(0, footY, W, 56).fill(BRAND);
+  doc.rect(0, footY, W, 3).fill(GOLD);
 
-  // Footer note
-  doc.fillColor(C.midGray).font('Helvetica-Oblique').fontSize(8)
+  doc.fillColor('#9fa8da').font('Helvetica').fontSize(8)
      .text(
-       'This is a computer-generated receipt and does not require a signature. ' +
-       'For queries, contact ' + COMPANY.email,
-       MARGIN, doc.y, { width: CONTENT, align: 'center' }
+       `${COMPANY.name}  ·  Reg. No. ${COMPANY.reg}  ·  ${COMPANY.address}  ·  ${COMPANY.email}`,
+       MARGIN, footY + 14, { align: 'center', width: CONTENT }
      );
-
-  drawPageFooter(doc);
+  doc.fillColor('#c5cae9').font('Helvetica-Oblique').fontSize(7.5)
+     .text(
+       'This is a computer-generated receipt and does not require a physical signature.',
+       MARGIN, footY + 32, { align: 'center', width: CONTENT }
+     );
 }
 
 module.exports = { generateResultPDF, generateResultPDFBuffer, generateReceiptPDF, generateReceiptPDFBuffer };
