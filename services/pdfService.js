@@ -391,7 +391,7 @@ function buildDocument(doc, result) {
 // ─────────────────────────────────────────────────────────
 
 function generateReceiptPDF(res, { enrollment, workshop, student }) {
-  const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
+  const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true, autoFirstPage: true });
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition',
@@ -405,7 +405,7 @@ function generateReceiptPDF(res, { enrollment, workshop, student }) {
 
 async function generateReceiptPDFBuffer({ enrollment, workshop, student }) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true });
+    const doc = new PDFDocument({ size: 'A4', margin: MARGIN, bufferPages: true, autoFirstPage: true });
     const chunks = [];
     doc.on('data', c => chunks.push(c));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -560,6 +560,10 @@ function _buildReceipt(doc, { enrollment, workshop, student }) {
   }
   rowY += 20;
 
+  // Clamp rowY so content never overlaps footer
+  const maxContentY = H - 110;
+  if (rowY > maxContentY) rowY = maxContentY;
+
   // ── STATUS STAMP ───────────────────────────────────────────
   const isPaid   = enrollment.paymentStatus === 'paid' || enrollment.paymentStatus === 'free';
   const stampClr = isPaid ? GREEN : '#e65100';
@@ -575,20 +579,25 @@ function _buildReceipt(doc, { enrollment, workshop, student }) {
      .text(stampTxt, stampX - 30, stampY - 8, { width: 60, align: 'center' });
   rowY += 10;
 
-  // ── BOTTOM FOOTER BAND ─────────────────────────────────────
-  const footY = H - 56;
-  doc.rect(0, footY, W, 56).fill(BRAND);
+  // ── BOTTOM FOOTER BAND (absolutely positioned) ───────────
+  const footY = H - 72;
+  doc.rect(0, footY, W, 72).fill(BRAND);
   doc.rect(0, footY, W, 3).fill(GOLD);
 
   doc.fillColor('#9fa8da').font('Helvetica').fontSize(8)
      .text(
-       `${COMPANY.name}  ·  Reg. No. ${COMPANY.reg}  ·  ${COMPANY.address}  ·  ${COMPANY.email}`,
-       MARGIN, footY + 14, { align: 'center', width: CONTENT }
+       `${COMPANY.name}  ·  Reg. No. ${COMPANY.reg}  ·  ${COMPANY.address}`,
+       MARGIN, footY + 16, { align: 'center', width: CONTENT, lineBreak: false }
+     );
+  doc.fillColor('#9fa8da').font('Helvetica').fontSize(8)
+     .text(
+       COMPANY.email,
+       MARGIN, footY + 32, { align: 'center', width: CONTENT }
      );
   doc.fillColor('#c5cae9').font('Helvetica-Oblique').fontSize(7.5)
      .text(
        'This is a computer-generated receipt and does not require a physical signature.',
-       MARGIN, footY + 32, { align: 'center', width: CONTENT }
+       MARGIN, footY + 50, { align: 'center', width: CONTENT }
      );
 }
 
