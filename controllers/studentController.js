@@ -19,7 +19,10 @@ exports.getDashboard = async (req, res) => {
   try {
     const user = await User.findById(req.session.user._id);
 
-    const [results, newWorkshops] = await Promise.all([
+    const AttendanceSession = require('../models/AttendanceSession');
+    const AttendanceRecord  = require('../models/AttendanceRecord');
+
+    const [results, newWorkshops, enrollments] = await Promise.all([
       Result.find({
         $or: [
           { studentId: req.session.user._id },
@@ -36,20 +39,57 @@ exports.getDashboard = async (req, res) => {
           { collegeName: '' },
           ...(user?.collegeId ? [{ collegeId: user.collegeId }] : [])
         ]
-      }).sort({ createdAt: -1 }).limit(3)
+      }).sort({ createdAt: -1 }).limit(3),
+
+      // Student's enrolled workshops
+      Enrollment.find({
+        studentId: req.session.user._id,
+        paymentStatus: { $in: ['paid', 'free'] }
+      }).sort({ enrolledAt: -1 })
     ]);
 
-    // Filter out already enrolled
-    const enrolledIds = new Set(
-      (await Enrollment.find({ studentId: req.session.user._id, paymentStatus: { $in: ['paid','free'] } }))
-        .map(e => e.workshopId.toString())
-    );
+    const enrolledIds = new Set(enrollments.map(e => e.workshopId.toString()));
     const unenrolledNew = newWorkshops.filter(w => !enrolledIds.has(w._id.toString()));
+
+    // Fetch full workshop docs + attendance stats for enrolled workshops
+    const workshopIds = enrollments.map(e => e.workshopId);
+    const workshops   = await Workshop.find({ _id: { $in: workshopIds } });
+    const workshopMap = {};
+    workshops.forEach(w => { workshopMap[w._id.toString()] = w; });
+
+    const enrolledWorkshops = await Promise.all(enrollments.map(async e => {
+      const w = workshopMap[e.workshopId.toString()];
+      if (!w) return null;
+
+      const [totalSessions, markedSessions, openSessions] = await Promise.all([
+        AttendanceSession.countDocuments({ workshopId: w._id }),
+        AttendanceRecord.countDocuments({ workshopId: w._id, studentId: req.session.user._id }),
+        AttendanceSession.find({ workshopId: w._id, isOpen: true })
+      ]);
+
+      return {
+        workshop:       w,
+        fee:            e.fee,
+        paymentStatus:  e.paymentStatus,
+        enrolledAt:     e.enrolledAt,
+        totalSessions,
+        markedSessions,
+        attendancePct:  totalSessions > 0 ? Math.round(markedSessions / totalSessions * 100) : null,
+        openSessions,
+        hasOpenSession: openSessions.length > 0
+      };
+    }));
+
+    const activeEnrolledWorkshops = enrolledWorkshops
+      .filter(Boolean)
+      .sort((a, b) => (b.hasOpenSession ? 1 : 0) - (a.hasOpenSession ? 1 : 0));
 
     res.render('student/dashboard', {
       title: 'Student Dashboard — APARAITECH',
+      user,
       results,
-      newWorkshops: unenrolledNew
+      newWorkshops: unenrolledNew,
+      enrolledWorkshops: activeEnrolledWorkshops
     });
   } catch (err) {
     console.error('Student dashboard error:', err.message);
