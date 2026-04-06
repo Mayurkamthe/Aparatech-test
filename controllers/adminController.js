@@ -482,6 +482,11 @@ exports.getCollegeReport = async (req, res) => {
       return res.redirect('/admin/colleges');
     }
 
+    const Enrollment        = require('../models/Enrollment');
+    const Workshop          = require('../models/Workshop');
+    const AttendanceSession = require('../models/AttendanceSession');
+    const AttendanceRecord  = require('../models/AttendanceRecord');
+
     const [students, results, tests] = await Promise.all([
       User.find({ collegeId: college._id, role: 'student' }).sort({ name: 1 }),
       Result.find({ collegeId: college._id }).sort({ submittedAt: -1 }),
@@ -502,13 +507,72 @@ exports.getCollegeReport = async (req, res) => {
       { $sort: { totalAttempts: -1 } }
     ]);
 
+    // ── Workshop revenue & enrollment data ────────────────
+    // Enrollments from students of this college
+    const studentIds = students.map(s => s._id);
+    const enrollments = await Enrollment.find({
+      studentId: { $in: studentIds },
+      paymentStatus: { $in: ['paid', 'free'] }
+    });
+
+    // Group enrollments by workshopId
+    const workshopEnrollMap = {};
+    enrollments.forEach(e => {
+      const wid = e.workshopId.toString();
+      if (!workshopEnrollMap[wid]) {
+        workshopEnrollMap[wid] = { enrollCount: 0, revenue: 0, studentIds: [] };
+      }
+      workshopEnrollMap[wid].enrollCount++;
+      workshopEnrollMap[wid].revenue += (e.fee || 0);
+      workshopEnrollMap[wid].studentIds.push(e.studentId.toString());
+    });
+
+    const enrolledWorkshopIds = Object.keys(workshopEnrollMap);
+    const workshops = await Workshop.find({ _id: { $in: enrolledWorkshopIds } }).sort({ startDate: -1 });
+
+    // Per-workshop attendance stats for this college's students
+    const workshopStats = await Promise.all(workshops.map(async w => {
+      const wid = w._id.toString();
+      const info = workshopEnrollMap[wid] || { enrollCount: 0, revenue: 0, studentIds: [] };
+
+      // Total sessions for this workshop
+      const totalSessions = await AttendanceSession.countDocuments({ workshopId: w._id });
+
+      // Attendance records by college students
+      const presentRecords = await AttendanceRecord.countDocuments({
+        workshopId: w._id,
+        studentId: { $in: info.studentIds.map(id => require('mongoose').Types.ObjectId.createFromHexString(id)) }
+      });
+
+      // Max possible = enrolled students × sessions
+      const maxPossible = info.enrollCount * totalSessions;
+      const attendancePct = maxPossible > 0 ? Math.round(presentRecords / maxPossible * 100) : null;
+
+      return {
+        workshop:      w,
+        enrollCount:   info.enrollCount,
+        revenue:       info.revenue,
+        totalSessions,
+        presentRecords,
+        maxPossible,
+        attendancePct
+      };
+    }));
+
+    // Revenue summary
+    const totalRevenue     = workshopStats.reduce((a, w) => a + w.revenue, 0);
+    const totalEnrollments = workshopStats.reduce((a, w) => a + w.enrollCount, 0);
+
     res.render('admin/college-report', {
       title: `${college.name} — Report`,
       college,
       students,
       results,
       testStats,
-      tests
+      tests,
+      workshopStats,
+      totalRevenue,
+      totalEnrollments
     });
   } catch (err) {
     console.error('College report error:', err.message);
@@ -521,16 +585,22 @@ exports.getCollegeReport = async (req, res) => {
 exports.downloadCollegeReport = async (req, res) => {
   try {
     const XLSX = require('xlsx');
+    const Enrollment        = require('../models/Enrollment');
+    const Workshop          = require('../models/Workshop');
+    const AttendanceSession = require('../models/AttendanceSession');
+    const AttendanceRecord  = require('../models/AttendanceRecord');
+
     const college = await College.findById(req.params.id);
     if (!college) return res.redirect('/admin/colleges');
 
-    const results = await Result.find({ collegeId: college._id }).sort({ percentage: -1 });
+    const students = await User.find({ collegeId: college._id, role: 'student' });
+    const results  = await Result.find({ collegeId: college._id }).sort({ percentage: -1 });
 
-    const rows = results.map((r, i) => ({
+    // ── Sheet 1: Test Results ────────────────────────────
+    const resultRows = results.map((r, i) => ({
       Rank:           i + 1,
       'Student Name': r.studentName || '',
       'Email':        r.studentEmail || '',
-      'College':      r.collegeName || college.name,
       'Test':         r.testTitle || '',
       'Domain':       r.testDomain || '',
       'Score':        `${r.score}/${r.totalMarks}`,
@@ -542,19 +612,99 @@ exports.downloadCollegeReport = async (req, res) => {
       'Date':         new Date(r.submittedAt).toLocaleDateString('en-IN')
     }));
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [
-      {wch:6},{wch:20},{wch:28},{wch:25},{wch:22},
-      {wch:15},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:14}
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, college.name.substring(0, 31));
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    // ── Sheet 2: Workshop Revenue ────────────────────────
+    const studentIds = students.map(s => s._id);
+    const enrollments = await Enrollment.find({
+      studentId: { $in: studentIds },
+      paymentStatus: { $in: ['paid', 'free'] }
+    });
+    const workshopIds = [...new Set(enrollments.map(e => e.workshopId.toString()))];
+    const workshops   = await Workshop.find({ _id: { $in: workshopIds } }).sort({ startDate: -1 });
 
-    res.setHeader('Content-Disposition', `attachment; filename="${college.name}-report.xlsx"`);
+    const revenueRows = workshops.map((w, i) => {
+      const wEnrolls = enrollments.filter(e => e.workshopId.toString() === w._id.toString());
+      const revenue  = wEnrolls.reduce((a, e) => a + (e.fee || 0), 0);
+      const free     = wEnrolls.filter(e => e.paymentStatus === 'free').length;
+      const paid     = wEnrolls.filter(e => e.paymentStatus === 'paid').length;
+      return {
+        '#':           i + 1,
+        'Workshop':    w.title,
+        'Start Date':  new Date(w.startDate).toLocaleDateString('en-IN'),
+        'End Date':    new Date(w.endDate).toLocaleDateString('en-IN'),
+        'Fee (₹)':     w.isFree ? 0 : w.fee,
+        'Enrolled':    wEnrolls.length,
+        'Free':        free,
+        'Paid':        paid,
+        'Revenue (₹)': revenue
+      };
+    });
+    // Totals row
+    if (revenueRows.length > 0) {
+      revenueRows.push({
+        '#': '',
+        'Workshop': 'TOTAL',
+        'Start Date': '', 'End Date': '', 'Fee (₹)': '',
+        'Enrolled':    enrollments.length,
+        'Free':        enrollments.filter(e => e.paymentStatus === 'free').length,
+        'Paid':        enrollments.filter(e => e.paymentStatus === 'paid').length,
+        'Revenue (₹)': enrollments.reduce((a, e) => a + (e.fee || 0), 0)
+      });
+    }
+
+    // ── Sheet 3: Attendance per workshop ────────────────
+    const attendanceRows = [];
+    for (const w of workshops) {
+      const sessions = await AttendanceSession.find({ workshopId: w._id }).sort({ createdAt: 1 });
+      const wEnrolls = enrollments.filter(e => e.workshopId.toString() === w._id.toString());
+      for (const s of sessions) {
+        const records = await AttendanceRecord.find({
+          sessionId: s._id,
+          studentId: { $in: studentIds }
+        });
+        const presentIds = new Set(records.map(r => r.studentId.toString()));
+        for (const enroll of wEnrolls) {
+          const isPresent = presentIds.has(enroll.studentId.toString());
+          attendanceRows.push({
+            'Workshop':    w.title,
+            'Session':     s.sessionLabel,
+            'Date':        new Date(s.createdAt).toLocaleDateString('en-IN'),
+            'Student':     enroll.studentName || '',
+            'Email':       enroll.studentEmail || '',
+            'Status':      isPresent ? 'Present' : 'Absent',
+            'Marked At':   isPresent
+              ? records.find(r => r.studentId.toString() === enroll.studentId.toString())
+                       ?.markedAt?.toLocaleTimeString('en-IN') || ''
+              : ''
+          });
+        }
+      }
+    }
+
+    // ── Build workbook ───────────────────────────────────
+    const wb = XLSX.utils.book_new();
+
+    const ws1 = XLSX.utils.json_to_sheet(resultRows);
+    ws1['!cols'] = [{wch:6},{wch:20},{wch:28},{wch:22},{wch:15},{wch:10},{wch:12},{wch:10},{wch:10},{wch:10},{wch:10},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws1, 'Test Results');
+
+    if (revenueRows.length > 0) {
+      const ws2 = XLSX.utils.json_to_sheet(revenueRows);
+      ws2['!cols'] = [{wch:4},{wch:30},{wch:14},{wch:14},{wch:10},{wch:10},{wch:8},{wch:8},{wch:14}];
+      XLSX.utils.book_append_sheet(wb, ws2, 'Workshop Revenue');
+    }
+
+    if (attendanceRows.length > 0) {
+      const ws3 = XLSX.utils.json_to_sheet(attendanceRows);
+      ws3['!cols'] = [{wch:28},{wch:20},{wch:14},{wch:20},{wch:28},{wch:10},{wch:12}];
+      XLSX.utils.book_append_sheet(wb, ws3, 'Attendance');
+    }
+
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', `attachment; filename="${college.name}-full-report.xlsx"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buf);
   } catch (err) {
+    console.error('Download college report error:', err.message);
     req.flash('error_msg', 'Failed to download report.');
     res.redirect('/admin/colleges');
   }
