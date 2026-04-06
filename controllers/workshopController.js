@@ -86,11 +86,37 @@ exports.adminGetWorkshopDetail = async (req, res) => {
   try {
     const workshop = await Workshop.findById(req.params.id);
     if (!workshop) { req.flash('error_msg', 'Workshop not found.'); return res.redirect('/admin/workshops'); }
-    const [enrollments, materials] = await Promise.all([
+
+    const AttendanceSession = require('../models/AttendanceSession');
+    const AttendanceRecord  = require('../models/AttendanceRecord');
+
+    const [enrollments, materials, totalSessions] = await Promise.all([
       Enrollment.find({ workshopId: workshop._id, paymentStatus: { $in: ['paid','free'] } }).sort({ enrolledAt: -1 }),
-      StudyMaterial.find({ workshopId: workshop._id }).sort({ order: 1, createdAt: 1 })
+      StudyMaterial.find({ workshopId: workshop._id }).sort({ order: 1, createdAt: 1 }),
+      AttendanceSession.countDocuments({ workshopId: workshop._id })
     ]);
-    res.render('admin/workshop-detail', { title: workshop.title, workshop, enrollments, materials });
+
+    // Attach attendance count + % to each enrollment
+    const enrollmentsWithAtt = await Promise.all(enrollments.map(async e => {
+      const marked = await AttendanceRecord.countDocuments({
+        workshopId: workshop._id,
+        studentId:  e.studentId
+      });
+      return {
+        ...e.toObject(),
+        markedSessions: marked,
+        totalSessions,
+        attendancePct: totalSessions > 0 ? Math.round(marked / totalSessions * 100) : null
+      };
+    }));
+
+    res.render('admin/workshop-detail', {
+      title: workshop.title,
+      workshop,
+      enrollments: enrollmentsWithAtt,
+      materials,
+      totalSessions
+    });
   } catch (err) {
     req.flash('error_msg', 'Failed to load workshop.');
     res.redirect('/admin/workshops');

@@ -140,7 +140,7 @@
           <% } else { %>
           <div class="table-responsive">
             <table class="table mb-0">
-              <thead><tr><th>#</th><th>Student</th><th>College</th><th>Fee</th><th>Payment</th><th>Date</th></tr></thead>
+              <thead><tr><th>#</th><th>Student</th><th>College</th><th>Fee</th><th>Payment</th><th>Attendance</th><th>Date</th></tr></thead>
               <tbody>
                 <% enrollments.forEach((e, i) => { %>
                 <tr>
@@ -149,6 +149,22 @@
                   <td class="small"><%= e.collegeName || '—' %></td>
                   <td class="small">₹<%= e.fee %></td>
                   <td><span class="badge <%= e.paymentStatus === 'paid' ? 'bg-success' : e.paymentStatus === 'free' ? 'bg-info' : 'bg-warning text-dark' %>"><%= e.paymentStatus %></span></td>
+                  <td>
+                    <% if (e.totalSessions === 0) { %>
+                      <span class="text-muted small">No sessions</span>
+                    <% } else { %>
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-grow-1" style="height:5px;min-width:50px;">
+                          <div class="progress-bar <%= e.attendancePct >= 75 ? 'bg-success' : e.attendancePct >= 50 ? 'bg-warning' : 'bg-danger' %>"
+                               style="width:<%= e.attendancePct %>%"></div>
+                        </div>
+                        <span class="small fw-semibold <%= e.attendancePct >= 75 ? 'text-success' : e.attendancePct >= 50 ? 'text-warning' : 'text-danger' %>"
+                              style="min-width:60px;">
+                          <%= e.markedSessions %>/<%= e.totalSessions %> (<%= e.attendancePct %>%)
+                        </span>
+                      </div>
+                    <% } %>
+                  </td>
                   <td class="text-muted small"><%= new Date(e.enrolledAt).toLocaleDateString('en-IN') %></td>
                 </tr>
                 <% }) %>
