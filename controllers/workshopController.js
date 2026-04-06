@@ -421,7 +421,10 @@ exports.downloadReceipt = async (req, res) => {
     req.flash('error_msg', 'Failed to generate receipt.');
     res.redirect(`/student/workshops/${req.params.id}`);
   }
-}; = async (req, res) => {
+};
+
+// GET /student/workshops/:id
+exports.studentGetWorkshopRoom = async (req, res) => {
   try {
     const workshop = await Workshop.findById(req.params.id);
     if (!workshop) { req.flash('error_msg', 'Workshop not found.'); return res.redirect('/student/workshops'); }
