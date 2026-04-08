@@ -56,6 +56,18 @@ const testSchema = new mongoose.Schema({
   instructions: {
     type: String,
     default: ''
+  },
+  isScheduled: {
+    type: Boolean,
+    default: false   // false = open anytime (legacy behaviour)
+  },
+  scheduledStart: {
+    type: Date,
+    default: null    // null = no window enforced
+  },
+  scheduledEnd: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true

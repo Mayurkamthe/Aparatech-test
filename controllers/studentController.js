@@ -220,6 +220,20 @@ exports.postEnterCode = async (req, res) => {
       return res.redirect('/student/enter-code');
     }
 
+    // ── Time window check ──────────────────────────────
+    if (test.isScheduled) {
+      const now = new Date();
+      if (now < test.scheduledStart) {
+        const startsIn = test.scheduledStart.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        req.flash('error_msg', `This test is not open yet. It starts on ${startsIn}.`);
+        return res.redirect('/student/enter-code');
+      }
+      if (now > test.scheduledEnd) {
+        req.flash('error_msg', 'This test window has closed. You can no longer attempt this test.');
+        return res.redirect('/student/enter-code');
+      }
+    }
+
     // Check if student already attempted this test
     const existingResult = await Result.findOne({
       studentId: req.session.user._id,
@@ -256,6 +270,20 @@ exports.getInstructions = async (req, res) => {
       return res.redirect('/student/enter-code');
     }
 
+    // Time window check
+    if (test.isScheduled) {
+      const now = new Date();
+      if (now < test.scheduledStart) {
+        const startsIn = test.scheduledStart.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+        req.flash('error_msg', `This test has not started yet. It opens on ${startsIn}.`);
+        return res.redirect('/student/enter-code');
+      }
+      if (now > test.scheduledEnd) {
+        req.flash('error_msg', 'This test window has closed.');
+        return res.redirect('/student/enter-code');
+      }
+    }
+
     // Block if already attempted
     const existing = await Result.findOne({ studentId: req.session.user._id, testId: test._id });
     if (existing) {
@@ -286,6 +314,15 @@ exports.startTest = async (req, res) => {
     if (!test || !test.isActive) {
       req.flash('error_msg', 'Test not found or inactive.');
       return res.redirect('/student/enter-code');
+    }
+
+    // Time window check
+    if (test.isScheduled) {
+      const now = new Date();
+      if (now < test.scheduledStart || now > test.scheduledEnd) {
+        req.flash('error_msg', 'This test is outside its allowed time window.');
+        return res.redirect('/student/enter-code');
+      }
     }
 
     // Block if already submitted

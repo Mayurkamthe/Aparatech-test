@@ -68,11 +68,22 @@ exports.getCreateTest = (req, res) => {
 // ── POST /admin/tests/create ──────────────────────────
 exports.postCreateTest = async (req, res) => {
   try {
-    const { title, domain, duration, totalMarks, passingMarks, questionLimit, instructions } = req.body;
+    const { title, domain, duration, totalMarks, passingMarks, questionLimit, instructions,
+            isScheduled, scheduledStart, scheduledEnd } = req.body;
 
     // Validation
     if (!title || !domain || !duration || !totalMarks) {
       req.flash('error_msg', 'Please fill all required fields.');
+      return res.redirect('/admin/tests/create');
+    }
+
+    const scheduled = isScheduled === 'on';
+    if (scheduled && (!scheduledStart || !scheduledEnd)) {
+      req.flash('error_msg', 'Please set both start and end time for the scheduled window.');
+      return res.redirect('/admin/tests/create');
+    }
+    if (scheduled && new Date(scheduledStart) >= new Date(scheduledEnd)) {
+      req.flash('error_msg', 'End time must be after start time.');
       return res.redirect('/admin/tests/create');
     }
 
@@ -92,7 +103,10 @@ exports.postCreateTest = async (req, res) => {
       questionLimit: parseInt(questionLimit) || 0,
       instructions: instructions?.trim() || '',
       code,
-      createdBy: req.session.user._id
+      createdBy: req.session.user._id,
+      isScheduled: scheduled,
+      scheduledStart: scheduled ? new Date(scheduledStart) : null,
+      scheduledEnd:   scheduled ? new Date(scheduledEnd)   : null
     });
 
     req.flash('success_msg', `Test created! Code: <strong>${code}</strong>. Now add questions.`);
@@ -753,21 +767,35 @@ exports.getEditTest = async (req, res) => {
 // ── POST /admin/tests/:id/edit ────────────────────────
 exports.postEditTest = async (req, res) => {
   try {
-    const { title, domain, duration, totalMarks, passingMarks, questionLimit, instructions } = req.body;
+    const { title, domain, duration, totalMarks, passingMarks, questionLimit, instructions,
+            isScheduled, scheduledStart, scheduledEnd } = req.body;
 
     if (!title || !domain || !duration || !totalMarks) {
       req.flash('error_msg', 'Please fill all required fields.');
       return res.redirect(`/admin/tests/${req.params.id}/edit`);
     }
 
+    const scheduled = isScheduled === 'on';
+    if (scheduled && (!scheduledStart || !scheduledEnd)) {
+      req.flash('error_msg', 'Please set both start and end time for the scheduled window.');
+      return res.redirect(`/admin/tests/${req.params.id}/edit`);
+    }
+    if (scheduled && new Date(scheduledStart) >= new Date(scheduledEnd)) {
+      req.flash('error_msg', 'End time must be after start time.');
+      return res.redirect(`/admin/tests/${req.params.id}/edit`);
+    }
+
     await Test.findByIdAndUpdate(req.params.id, {
-      title:         title.trim(),
+      title:          title.trim(),
       domain,
-      duration:      parseInt(duration),
-      totalMarks:    parseInt(totalMarks),
-      passingMarks:  parseInt(passingMarks) || 0,
-      questionLimit: parseInt(questionLimit) || 0,
-      instructions:  instructions?.trim() || ''
+      duration:       parseInt(duration),
+      totalMarks:     parseInt(totalMarks),
+      passingMarks:   parseInt(passingMarks) || 0,
+      questionLimit:  parseInt(questionLimit) || 0,
+      instructions:   instructions?.trim() || '',
+      isScheduled:    scheduled,
+      scheduledStart: scheduled ? new Date(scheduledStart) : null,
+      scheduledEnd:   scheduled ? new Date(scheduledEnd)   : null
     });
 
     req.flash('success_msg', 'Test updated successfully.');
