@@ -1,11 +1,11 @@
 /**
- * APARAITECH Service Worker
+ * OMVSAB Service Worker
  * =========================
  * Caches static assets for offline/fast loading.
  * Network-first for pages, cache-first for assets.
  */
 
-const CACHE_NAME = 'aparaitech-v1';
+const CACHE_NAME = 'omvsab-v1';
 const STATIC_ASSETS = [
   '/',
   '/login',

@@ -1,5 +1,5 @@
 /**
- * APARAITECH Test Portal — Main App JS
+ * OMVSAB Test Portal — Main App JS
  * =====================================
  * General UI enhancements for all pages.
  */

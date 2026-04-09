@@ -26,7 +26,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(session({
-  secret:            process.env.SESSION_SECRET || 'aparaitech_secret',
+  secret:            process.env.SESSION_SECRET || 'omvsab_secret',
   resave:            false,
   saveUninitialized: false,
   cookie: {
@@ -43,7 +43,13 @@ app.use((req, res, next) => {
   res.locals.error_msg   = req.flash('error_msg');
   res.locals.error       = req.flash('error');
   res.locals.user        = req.session.user || null;
-  res.locals.companyName = process.env.COMPANY_NAME || 'APARAITECH';
+  res.locals.companyName     = process.env.COMPANY_NAME     || 'OMVSAB';
+  res.locals.companyFullName = process.env.COMPANY_FULLNAME  || 'OMVSAB IT SOLUTION';
+  res.locals.companyTagline  = process.env.COMPANY_TAGLINE   || 'We code your Requirements';
+  res.locals.companyEmail    = process.env.COMPANY_EMAIL     || 'hr@omvsabitsolution.in';
+  res.locals.companyWebsite  = process.env.COMPANY_WEBSITE   || 'www.omvsabitsolution.in';
+  res.locals.companyPhone    = process.env.COMPANY_PHONE     || '+91-20-6522-2520';
+  res.locals.companyAddress  = process.env.COMPANY_ADDRESS   || 'Sr. No. 19/1/8, Karve Nagar, Pune - 411052, Maharashtra, India';
   next();
 });
 
@@ -63,7 +69,7 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 APARAITECH running at http://localhost:${PORT}`);
+  console.log(`🚀 OMVSAB running at http://localhost:${PORT}`);
   console.log(`📌 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 

@@ -85,7 +85,7 @@ exports.getDashboard = async (req, res) => {
       .sort((a, b) => (b.hasOpenSession ? 1 : 0) - (a.hasOpenSession ? 1 : 0));
 
     res.render('student/dashboard', {
-      title: 'Student Dashboard — APARAITECH',
+      title: 'Student Dashboard — OMVSAB',
       user,
       results,
       newWorkshops: unenrolledNew,
@@ -168,7 +168,7 @@ exports.getProfile = async (req, res) => {
     };
 
     res.render('student/profile', {
-      title: 'My Profile — APARAITECH',
+      title: 'My Profile — OMVSAB',
       user,
       results,
       testStats,
@@ -201,7 +201,7 @@ exports.updateProfile = async (req, res) => {
 
 // ── GET /student/enter-code ───────────────────────────
 exports.getEnterCode = (req, res) => {
-  res.render('student/enter-code', { title: 'Enter Test Code — APARAITECH' });
+  res.render('student/enter-code', { title: 'Enter Test Code — OMVSAB' });
 };
 
 // ── POST /student/enter-code ──────────────────────────
@@ -306,7 +306,7 @@ exports.startTest = async (req, res) => {
       console.log(`♻️  Restoring test session for ${req.session.user.email}, time left: ${durationSeconds}s`);
 
       return res.render('student/test', {
-        title: `${test.title} — APARAITECH`,
+        title: `${test.title} — OMVSAB`,
         test,
         questions: storedQuestions,
         durationSeconds // Pass remaining time to frontend
@@ -337,7 +337,7 @@ exports.startTest = async (req, res) => {
     };
 
     res.render('student/test', {
-      title: `${test.title} — APARAITECH`,
+      title: `${test.title} — OMVSAB`,
       test,
       questions: shuffledQuestions,
       durationSeconds: test.duration * 60

@@ -4,16 +4,16 @@ const bcrypt = require('bcryptjs');
 
 // ── GET /admin-login ──────────────────────────────────────
 exports.getAdminLogin = (req, res) => {
-  res.render('admin-login', { title: 'Admin Login — APARAITECH' });
+  res.render('admin-login', { title: 'Admin Login — OMVSAB' });
 };
 
 // ── GET /login ─────────────────────────────────────────
 exports.getLogin = async (req, res) => {
   try {
     const colleges = await College.find({ isActive: true }).sort({ name: 1 });
-    res.render('login', { title: 'Login — APARAITECH Test Portal', colleges });
+    res.render('login', { title: 'Login — OMVSAB Test Portal', colleges });
   } catch (err) {
-    res.render('login', { title: 'Login — APARAITECH Test Portal', colleges: [] });
+    res.render('login', { title: 'Login — OMVSAB Test Portal', colleges: [] });
   }
 };
 

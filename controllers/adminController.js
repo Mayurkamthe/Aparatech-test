@@ -24,7 +24,7 @@ exports.getDashboard = async (req, res) => {
     ]);
 
     res.render('admin/dashboard', {
-      title: 'Admin Dashboard — APARAITECH',
+      title: 'Admin Dashboard — OMVSAB',
       stats: { testCount, studentCount, resultCount },
       recentResults
     });
@@ -48,7 +48,7 @@ exports.getTests = async (req, res) => {
     }));
 
     res.render('admin/tests', {
-      title: 'Manage Tests — APARAITECH Admin',
+      title: 'Manage Tests — OMVSAB Admin',
       tests: testsWithCounts
     });
   } catch (err) {
@@ -61,7 +61,7 @@ exports.getTests = async (req, res) => {
 // ── GET /admin/tests/create ───────────────────────────
 exports.getCreateTest = (req, res) => {
   res.render('admin/create-test', {
-    title: 'Create Test — APARAITECH Admin'
+    title: 'Create Test — OMVSAB Admin'
   });
 };
 
@@ -198,7 +198,7 @@ exports.getAllResults = async (req, res) => {
     ]);
 
     res.render('admin/results', {
-      title: 'All Results — APARAITECH Admin',
+      title: 'All Results — OMVSAB Admin',
       results,
       tests,
       selectedTest: testId || '',
@@ -267,7 +267,7 @@ exports.getUsers = async (req, res) => {
     }));
 
     res.render('admin/users', {
-      title: 'Manage Users — APARAITECH Admin',
+      title: 'Manage Users — OMVSAB Admin',
       users: usersWithStats,
       search: search || ''
     });
@@ -393,7 +393,7 @@ exports.getTopScores = async (req, res) => {
     ]);
 
     res.render('admin/topscores', {
-      title: 'Top Scores — APARAITECH Admin',
+      title: 'Top Scores — OMVSAB Admin',
       topResults,
       testStats,
       tests,
@@ -416,7 +416,7 @@ exports.getColleges = async (req, res) => {
       return { ...c.toObject(), studentCount, resultCount };
     }));
     res.render('admin/colleges', {
-      title: 'Manage Colleges — APARAITECH Admin',
+      title: 'Manage Colleges — OMVSAB Admin',
       colleges: collegesWithStats
     });
   } catch (err) {
@@ -828,7 +828,7 @@ exports.getAnnounce = async (req, res) => {
     const colleges = await College.find({ isActive: true }).sort({ name: 1 });
     const studentCount = await User.countDocuments({ role: 'student' });
     res.render('admin/announce', {
-      title: 'Send Announcement — APARAITECH Admin',
+      title: 'Send Announcement — OMVSAB Admin',
       colleges,
       studentCount
     });
@@ -883,7 +883,7 @@ exports.postAnnounce = async (req, res) => {
 
 // ── WA Template: GET /admin/users/wa-template ─────────
 // Returns saved template as JSON (used by frontend)
-let _waTemplate = 'Hi {name}, this is a message from APARAITECH. Please contact us for more information.';
+let _waTemplate = 'Hi {name}, this is a message from OMVSAB. Please contact us for more information.';
 
 exports.getWaTemplate = (req, res) => {
   res.json({ template: _waTemplate });

@@ -1,5 +1,5 @@
 /**
- * APARAITECH Test Portal — Anti-Cheat Module
+ * OMVSAB Test Portal — Anti-Cheat Module
  * ===========================================
  * Standalone JS included on the test page.
  * All core logic is embedded directly in test.ejs for reliability,
@@ -28,5 +28,5 @@ window.addEventListener('beforeprint', e => {
   return false;
 });
 
-console.log('%cAPARAITECH Anti-Cheat Active', 'color:#0d47a1;font-weight:bold;font-size:14px;');
+console.log('%cOMVSAB Anti-Cheat Active', 'color:#0d47a1;font-weight:bold;font-size:14px;');
 console.log('%cWarning: This session is monitored.', 'color:red;font-weight:bold;');

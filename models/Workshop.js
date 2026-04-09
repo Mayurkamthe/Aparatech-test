@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const workshopSchema = new mongoose.Schema({
   title: { type: String, required: true, trim: true },
   description: { type: String, trim: true, default: '' },
-  instructor: { type: String, trim: true, default: 'APARAITECH' },
+  instructor: { type: String, trim: true, default: 'OMVSAB' },
   collegeId: { type: mongoose.Schema.Types.ObjectId, ref: 'College', default: null },
   collegeName: { type: String, default: '' },
   fee: { type: Number, required: true, default: 0 },

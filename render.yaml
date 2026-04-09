@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: aparaitech-test-portal
+    name: omvsab-test-portal
     env: node
     buildCommand: npm install
     startCommand: node server.js

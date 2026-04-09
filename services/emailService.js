@@ -8,10 +8,12 @@
 const nodemailer = require('nodemailer');
 
 const COMPANY = {
-  name:    process.env.COMPANY_NAME    || 'APARAITECH',
-  email:   process.env.COMPANY_EMAIL   || 'info@aparaitechsoftware.org',
-  reg:     process.env.COMPANY_REG     || '2431000320445474',
-  address: process.env.COMPANY_ADDRESS || 'Baramati, Maharashtra 413102'
+  name:    process.env.COMPANY_NAME     || 'OMVSAB',
+  full:    process.env.COMPANY_FULLNAME || 'OMVSAB IT SOLUTION',
+  tagline: process.env.COMPANY_TAGLINE  || 'We code your Requirements',
+  email:   process.env.COMPANY_EMAIL    || 'hr@omvsabitsolution.in',
+  reg:     process.env.COMPANY_REG      || 'OMVSAB-IT-2024',
+  address: process.env.COMPANY_ADDRESS  || 'Sr. No. 19/1/8, Karve Nagar, Pune - 411052, Maharashtra'
 };
 
 // Lazy transporter — created only when first email is sent
@@ -34,14 +36,14 @@ function getTransporter() {
 
 const getHeader = () => `
   <div style="background:linear-gradient(135deg,#0d47a1,#1565c0);padding:30px 40px;text-align:center;border-radius:10px 10px 0 0;">
-    <h1 style="color:#fff;margin:0;font-family:'Segoe UI',Arial,sans-serif;font-size:28px;letter-spacing:2px;">${COMPANY.name}</h1>
-    <p style="color:#90caf9;margin:5px 0 0;font-size:13px;">Online Test Portal</p>
+    <h1 style="color:#fff;margin:0;font-family:'Segoe UI',Arial,sans-serif;font-size:28px;letter-spacing:2px;">${COMPANY.full || COMPANY.name}</h1>
+    <p style="color:#90caf9;margin:5px 0 0;font-size:13px;">${COMPANY.tagline || "We code your Requirements"}</p>
   </div>`;
 
 const getFooter = () => `
   <div style="background:#f5f5f5;padding:20px 40px;text-align:center;border-radius:0 0 10px 10px;border-top:1px solid #e0e0e0;">
     <p style="margin:0;font-size:12px;color:#757575;font-family:Arial,sans-serif;">
-      ${COMPANY.name} | Reg No: ${COMPANY.reg}<br>${COMPANY.address}<br>
+      ${COMPANY.full || COMPANY.name} | Reg No: ${COMPANY.reg}<br>${COMPANY.address}<br>
       <a href="mailto:${COMPANY.email}" style="color:#1565c0;">${COMPANY.email}</a>
     </p>
     <p style="margin:8px 0 0;font-size:11px;color:#9e9e9e;">This is an automated email. Please do not reply.</p>

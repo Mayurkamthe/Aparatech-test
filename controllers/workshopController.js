@@ -61,7 +61,7 @@ exports.adminPostCreateWorkshop = async (req, res) => {
     await Workshop.create({
       title: title.trim(),
       description: description?.trim() || '',
-      instructor: instructor?.trim() || 'APARAITECH',
+      instructor: instructor?.trim() || 'OMVSAB',
       collegeId: collegeId || null,
       collegeName,
       fee: isFree === 'on' ? 0 : parseFloat(fee) || 0,
@@ -261,7 +261,7 @@ exports.studentGetWorkshops = async (req, res) => {
     });
 
     res.render('student/workshops', {
-      title: 'Workshops — APARAITECH',
+      title: 'Workshops — OMVSAB',
       workshops: workshopsWithStatus,
       newWorkshops,
       razorpayKey: process.env.RAZORPAY_KEY_ID || ''
@@ -355,7 +355,7 @@ exports.createOrder = async (req, res) => {
       amount:    order.amount,
       currency:  order.currency,
       key:       process.env.RAZORPAY_KEY_ID,
-      name:      'APARAITECH',
+      name:      'OMVSAB',
       description: workshop.title,
       workshopId: workshop._id
     });

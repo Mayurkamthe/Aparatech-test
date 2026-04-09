@@ -7,10 +7,12 @@
 const PDFDocument = require('pdfkit');
 
 const COMPANY = {
-  name:    process.env.COMPANY_NAME    || 'APARAITECH',
-  email:   process.env.COMPANY_EMAIL   || 'info@aparaitechsoftware.org',
-  reg:     process.env.COMPANY_REG     || '2431000320445474',
-  address: process.env.COMPANY_ADDRESS || 'Baramati, Maharashtra 413102'
+  name:    process.env.COMPANY_NAME     || 'OMVSAB',
+  full:    process.env.COMPANY_FULLNAME || 'OMVSAB IT SOLUTION',
+  tagline: process.env.COMPANY_TAGLINE  || 'We code your Requirements',
+  email:   process.env.COMPANY_EMAIL    || 'hr@omvsabitsolution.in',
+  reg:     process.env.COMPANY_REG      || 'OMVSAB-IT-2024',
+  address: process.env.COMPANY_ADDRESS  || 'Sr. No. 19/1/8, Karve Nagar, Pune - 411052, Maharashtra'
 };
 
 const C = {

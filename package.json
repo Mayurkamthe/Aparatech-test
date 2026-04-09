@@ -1,7 +1,7 @@
 {
-  "name": "aparaitech-test-portal",
+  "name": "omvsab-test-portal",
   "version": "1.0.0",
-  "description": "APARAITECH Online Test Platform - Production Ready",
+  "description": "OMVSAB Online Test Platform - Production Ready",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -27,6 +27,6 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "author": "APARAITECH",
+  "author": "OMVSAB",
   "license": "MIT"
 }

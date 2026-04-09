@@ -1,7 +1,7 @@
 {
-  "name": "APARAITECH Test Portal",
-  "short_name": "APARAITECH",
-  "description": "APARAITECH Online Test Portal — Secure Assessment Platform",
+  "name": "OMVSAB Test Portal",
+  "short_name": "OMVSAB Test Portal",
+  "description": "OMVSAB Online Test Portal — Secure Assessment Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0d47a1",

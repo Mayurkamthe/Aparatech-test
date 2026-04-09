@@ -6,7 +6,7 @@
 
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'aparaitech_secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'omvsab_secret';
 
 // ── Require logged-in user (student or admin) ─────────
 function requireLogin(req, res, next) {
