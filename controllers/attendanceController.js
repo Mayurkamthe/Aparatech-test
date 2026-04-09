@@ -62,7 +62,7 @@ exports.adminCreateSession = async (req, res) => {
       sessionLabel: sessionLabel?.trim() || `Session ${Date.now()}`,
       token,
       isOpen:       false,
-      createdBy:    req.session.user?.name || 'Admin'
+      createdBy:    req.session?.user?.name || 'Admin'
     });
     req.flash('success_msg', `Session created with token: ${token}`);
     res.redirect(`/admin/workshops/${req.params.id}/attendance`);

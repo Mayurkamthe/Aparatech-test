@@ -139,7 +139,7 @@ exports.adminAddMaterial = async (req, res) => {
       isTask: isTask === 'on',
       taskDeadline: taskDeadline ? new Date(taskDeadline) : null,
       order: parseInt(order) || 0,
-      uploadedBy: req.session.user?.name || 'Admin'
+      uploadedBy: req.session?.user?.name || 'Admin'
     });
     req.flash('success_msg', 'Material added!');
     res.redirect(`/admin/workshops/${req.params.id}`);
@@ -290,6 +290,9 @@ exports.createOrder = async (req, res) => {
     // Free workshop — enroll directly
     if (workshop.isFree || workshop.fee === 0) {
       const user = await User.findById(req.session.user._id);
+      const existingFree = await Enrollment.findOne({
+        workshopId: workshop._id, studentId: req.session.user._id
+      });
       const enrollment = await Enrollment.findOneAndUpdate(
         { workshopId: workshop._id, studentId: req.session.user._id },
         {
@@ -304,7 +307,10 @@ exports.createOrder = async (req, res) => {
         },
         { upsert: true, new: true }
       );
-      await Workshop.findByIdAndUpdate(workshop._id, { $inc: { enrolledCount: 1 } });
+      // Only increment count on first enrollment
+      if (!existingFree) {
+        await Workshop.findByIdAndUpdate(workshop._id, { $inc: { enrolledCount: 1 } });
+      }
 
       // Send receipt email async
       sendReceiptEmail({ enrollment, workshop, student: user }).catch(err =>
